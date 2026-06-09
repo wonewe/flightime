@@ -5,7 +5,7 @@ import createGlobe from 'cobe'
 import type { Airport, Aircraft, FlightConfig, TripRecord } from '../types'
 import { AIRPORTS, AIRCRAFT, SEAT_OPTIONS } from '../constants'
 import { haversineDistance } from '../utils/geo'
-import { loadTripsSupabase, deleteTripsSupabase } from '../utils/tripHistorySupabase'
+import { loadTripsSupabase, deleteTripsSupabase, deleteTripsByIds } from '../utils/tripHistorySupabase'
 import { useAuth } from '../contexts/AuthContext'
 import { HistoryMap } from './HistoryMap'
 import { FriendsPanel } from './FriendsPanel'
@@ -199,6 +199,12 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
     await deleteTripsSupabase()
     setTrips([])
   }, [])
+
+  const handleDeleteRoute = useCallback(async (routeKey: string, recordIds: string[]) => {
+    await deleteTripsByIds(recordIds)
+    setTrips(prev => prev.filter(t => `${t.config.from.code}→${t.config.to.code}` !== routeKey))
+    if (expandedRoute === routeKey) setExpandedRoute(null)
+  }, [expandedRoute])
 
   const handleToggleHistory = useCallback(() => {
     if (!showHistory) { loadTripsSupabase().then(setTrips); setExpandedRoute(null) }
@@ -675,8 +681,14 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
                                 </div>
                               ))}
                               <div className="pt-2 mt-1 border-t border-white/[0.06] flex items-center justify-between text-[9px] font-mono text-white/25">
-                                <span>총 {rg.records.length}회</span>
-                                <span>{routeKm.toLocaleString()} km</span>
+                                <span>총 {rg.records.length}회 · {routeKm.toLocaleString()} km</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteRoute(rg.key, rg.records.map(r => r.id)) }}
+                                  className="flex items-center gap-1 text-white/15 hover:text-red-400/60 transition-colors"
+                                >
+                                  <Trash2 className="w-2.5 h-2.5" />
+                                  삭제
+                                </button>
                               </div>
                             </div>
                           </motion.div>

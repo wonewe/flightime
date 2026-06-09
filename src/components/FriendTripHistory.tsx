@@ -98,7 +98,7 @@ export function FriendTripHistory({ friendId, username }: Props) {
       </div>
 
       {/* Overlay cards */}
-      <div className="absolute inset-y-0 left-0 z-[1000] flex flex-col p-4 pointer-events-none max-w-[360px]">
+      <div className="absolute inset-y-0 left-0 w-[20%] z-[1000] flex flex-col p-4 pointer-events-none">
         {/* Stats card */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}

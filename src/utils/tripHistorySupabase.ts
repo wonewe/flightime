@@ -58,6 +58,16 @@ export async function deleteTripsSupabase(): Promise<void> {
   if (error) console.error('Failed to clear trips:', error.message)
 }
 
+export async function deleteTripsByIds(ids: string[]): Promise<void> {
+  if (ids.length === 0) return
+  const { error } = await supabase
+    .from('trips')
+    .delete()
+    .in('id', ids)
+
+  if (error) console.error('Failed to delete trips:', error.message)
+}
+
 export async function migrateLocalTrips(userId: string): Promise<void> {
   const STORAGE_KEY = 'flightime_trips'
   try {
