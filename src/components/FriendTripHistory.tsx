@@ -98,31 +98,31 @@ export function FriendTripHistory({ friendId, username }: Props) {
       </div>
 
       {/* Overlay cards */}
-      <div className="absolute inset-0 z-[1000] flex flex-col p-4 pointer-events-none">
+      <div className="absolute inset-y-0 left-0 z-[1000] flex flex-col p-4 pointer-events-none max-w-[360px]">
         {/* Stats card */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease }}
-          className="backdrop-blur-xl bg-night-900/80 border border-white/10 rounded-2xl p-4 mb-3 pointer-events-auto"
+          className="backdrop-blur-xl bg-night-900/80 border border-white/10 rounded-xl p-3 mb-2 pointer-events-auto"
         >
           <p className="text-[10px] font-mono text-white/50 tracking-wider mb-3">{username}의 기록</p>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
             <div>
               <p className="text-[8px] font-mono text-white/30 tracking-[0.15em]">FLIGHTS</p>
-              <p className="text-[16px] font-mono font-bold text-white/80 mt-0.5">{trips.length}</p>
+              <p className="text-[14px] font-mono font-bold text-white/80">{trips.length}</p>
             </div>
             <div>
               <p className="text-[8px] font-mono text-white/30 tracking-[0.15em]">CITIES</p>
-              <p className="text-[16px] font-mono font-bold text-white/80 mt-0.5">{totalStats.cityCount}</p>
+              <p className="text-[14px] font-mono font-bold text-white/80">{totalStats.cityCount}</p>
             </div>
             <div>
               <p className="text-[8px] font-mono text-white/30 tracking-[0.15em]">KM</p>
-              <p className="text-[16px] font-mono font-bold text-white/80 mt-0.5">{fmtDist(totalStats.totalKm)}</p>
+              <p className="text-[14px] font-mono font-bold text-white/80">{fmtDist(totalStats.totalKm)}</p>
             </div>
             <div>
               <p className="text-[8px] font-mono text-white/30 tracking-[0.15em]">FOCUS</p>
-              <p className="text-[13px] font-mono font-bold text-white/80 mt-1">{fmtTotal(totalStats.totalMin)}</p>
+              <p className="text-[14px] font-mono font-bold text-white/80">{fmtTotal(totalStats.totalMin)}</p>
             </div>
           </div>
         </motion.div>
@@ -138,21 +138,21 @@ export function FriendTripHistory({ friendId, username }: Props) {
             >
               <button
                 onClick={() => setExpandedRoute(prev => prev === rg.key ? null : rg.key)}
-                className={`w-full text-left backdrop-blur-xl rounded-xl p-3.5 border transition-all duration-300 ${
+                className={`w-full text-left backdrop-blur-xl rounded-lg p-2.5 border transition-all duration-300 ${
                   expandedRoute === rg.key
                     ? 'bg-night-900/80 border-sky-400/30'
                     : 'bg-night-900/60 border-white/10 hover:bg-night-900/70'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[14px] font-mono font-bold text-white/80 tracking-wider">{rg.from.code}</span>
-                    <Plane className="w-2.5 h-2.5 text-white/25" />
-                    <span className="text-[14px] font-mono font-bold text-white/80 tracking-wider">{rg.to.code}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[12px] font-mono font-bold text-white/80 tracking-wider">{rg.from.code}</span>
+                    <Plane className="w-2 h-2 text-white/25" />
+                    <span className="text-[12px] font-mono font-bold text-white/80 tracking-wider">{rg.to.code}</span>
                   </div>
                   <span className="text-[9px] font-mono text-sky-400/70">{rg.records.length}회</span>
                 </div>
-                <span className="text-[10px] text-white/35 mt-1 block">{rg.from.cityKo} → {rg.to.cityKo}</span>
+                <span className="text-[9px] text-white/35 mt-0.5 block">{rg.from.cityKo} → {rg.to.cityKo}</span>
               </button>
 
               <AnimatePresence>
