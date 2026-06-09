@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Settings } from 'lucide-react'
+import { X, Settings, Pause, Play } from 'lucide-react'
 import { FlightMap } from './FlightMap'
 import { useTimer } from '../hooks/useTimer'
 import { PHASE_THRESHOLDS } from '../constants'
@@ -75,6 +75,14 @@ export function FlightView({ config, durationMinutes, onLanded, onExit }: Props)
       )}
 
       <div className="absolute top-4 right-4 z-[1001] flex items-center gap-1">
+        <button
+          onClick={() => timer.isRunning ? timer.pause() : timer.resume()}
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+        >
+          {timer.isRunning
+            ? <Pause className="w-3.5 h-3.5 text-white/25" />
+            : <Play className="w-3.5 h-3.5 text-white/25" />}
+        </button>
         <button onClick={() => setSettingsOpen(v => !v)} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
           <Settings className="w-3.5 h-3.5 text-white/25" />
         </button>

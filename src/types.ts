@@ -35,3 +35,19 @@ export interface GeoPoint {
   lat: number
   lng: number
 }
+
+export interface TripRecord {
+  id: string
+  config: FlightConfig
+  durationMinutes: number
+  completedAt: string
+}
+
+export interface TripRow {
+  id: string
+  user_id: string
+  config: FlightConfig
+  duration_minutes: number
+  completed_at: string
+  created_at: string
+}

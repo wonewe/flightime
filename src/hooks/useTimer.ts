@@ -20,6 +20,7 @@ function getPhase(progress: number): FlightPhase {
 export function useTimer(durationMinutes: number) {
   const totalMs = durationMinutes * 60 * 1000
   const startTimeRef = useRef<number | null>(null)
+  const accumulatedRef = useRef(0)
   const rafRef = useRef<number>(0)
 
   const [state, setState] = useState<TimerState>({
@@ -33,8 +34,7 @@ export function useTimer(durationMinutes: number) {
   const tick = useCallback(() => {
     if (!startTimeRef.current) return
 
-    const now = Date.now()
-    const elapsed = now - startTimeRef.current
+    const elapsed = accumulatedRef.current + (Date.now() - startTimeRef.current)
     const progress = Math.min(elapsed / totalMs, 1)
     const phase = getPhase(progress)
 
@@ -52,24 +52,37 @@ export function useTimer(durationMinutes: number) {
   }, [totalMs])
 
   const start = useCallback(() => {
+    accumulatedRef.current = 0
+    startTimeRef.current = Date.now()
+    setState(prev => ({ ...prev, isRunning: true }))
+    rafRef.current = requestAnimationFrame(tick)
+  }, [tick])
+
+  const pause = useCallback(() => {
+    if (!startTimeRef.current) return
+    cancelAnimationFrame(rafRef.current)
+    accumulatedRef.current += Date.now() - startTimeRef.current
+    startTimeRef.current = null
+    setState(prev => ({ ...prev, isRunning: false }))
+  }, [])
+
+  const resume = useCallback(() => {
+    if (startTimeRef.current) return // already running
     startTimeRef.current = Date.now()
     setState(prev => ({ ...prev, isRunning: true }))
     rafRef.current = requestAnimationFrame(tick)
   }, [tick])
 
   const stop = useCallback(() => {
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current)
-    }
+    cancelAnimationFrame(rafRef.current)
     startTimeRef.current = null
+    accumulatedRef.current = 0
     setState(prev => ({ ...prev, isRunning: false }))
   }, [])
 
   useEffect(() => {
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    }
+    return () => { cancelAnimationFrame(rafRef.current) }
   }, [])
 
-  return { ...state, start, stop, totalMs }
+  return { ...state, start, stop, pause, resume, totalMs }
 }

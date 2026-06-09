@@ -1,12 +1,16 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plane, Search, ChevronRight, ArrowLeft } from 'lucide-react'
+import { Search, ChevronRight, ChevronLeft, ArrowLeft } from 'lucide-react'
 import { AIRPORTS, AIRCRAFT, SEAT_OPTIONS } from '../constants'
 import { haversineDistance } from '../utils/geo'
+import { AircraftPreview } from './AircraftModel'
 import type { Airport, Aircraft, FlightConfig } from '../types'
 
 interface Props {
   onComplete: (config: FlightConfig) => void
+  onBack?: () => void
+  initialFrom?: Airport
+  initialTo?: Airport
 }
 
 type Step = 'from' | 'to' | 'aircraft' | 'seat'
@@ -24,11 +28,13 @@ function generateFlightNumber(): string {
   return `FT-${num}`
 }
 
-export function Onboarding({ onComplete }: Props) {
-  const [step, setStep] = useState<Step>('from')
-  const [fromAirport, setFromAirport] = useState<Airport | null>(null)
-  const [toAirport, setToAirport] = useState<Airport | null>(null)
+export function Onboarding({ onComplete, onBack, initialFrom, initialTo }: Props) {
+  const hasRoute = !!(initialFrom && initialTo)
+  const [step, setStep] = useState<Step>(hasRoute ? 'aircraft' : 'from')
+  const [fromAirport, setFromAirport] = useState<Airport | null>(initialFrom ?? null)
+  const [toAirport, setToAirport] = useState<Airport | null>(initialTo ?? null)
   const [aircraft, setAircraft] = useState<Aircraft | null>(null)
+  const [focusedIdx, setFocusedIdx] = useState(0)
   const [seatPref, setSeatPref] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
@@ -48,6 +54,10 @@ export function Onboarding({ onComplete }: Props) {
   }, [search, step, fromAirport, toAirport])
 
   const goBack = () => {
+    if (hasRoute && step === 'aircraft') {
+      onBack?.()
+      return
+    }
     const prev = STEPS[stepIndex - 1]
     if (prev) {
       setStep(prev)
@@ -100,7 +110,7 @@ export function Onboarding({ onComplete }: Props) {
         {/* Header */}
         <div className="px-5 pt-5 pb-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {stepIndex > 0 && (
+            {(stepIndex > 0 || onBack || hasRoute) && (
               <button onClick={goBack} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors">
                 <ArrowLeft className="w-4 h-4 text-white/30" />
               </button>
@@ -199,7 +209,7 @@ export function Onboarding({ onComplete }: Props) {
               </motion.div>
             )}
 
-            {/* Aircraft selection */}
+            {/* Aircraft selection — 3D carousel */}
             {step === 'aircraft' && (
               <motion.div
                 key="aircraft"
@@ -208,29 +218,51 @@ export function Onboarding({ onComplete }: Props) {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.25 }}
-                className="h-full overflow-y-auto px-5 pb-5"
+                className="h-full flex flex-col"
               >
-                <div className="grid gap-2">
-                  {AIRCRAFT.map(ac => (
-                    <button
-                      key={ac.id}
-                      onClick={() => selectAircraft(ac)}
-                      className="w-full flex items-center justify-between px-4 py-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.04] hover:border-white/[0.08] transition-all group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <Plane className="w-4 h-4 text-white/15 group-hover:text-white/30 transition-colors" />
-                        <div className="text-left">
-                          <p className="text-[13px] font-mono text-white/60 group-hover:text-white/80 transition-colors">
-                            {ac.name}
-                          </p>
-                          <p className="text-[10px] text-white/20 mt-0.5">{ac.nameKo}</p>
-                        </div>
-                      </div>
-                      <span className="text-[9px] font-mono text-white/10 tracking-wider">
-                        {ac.type}
-                      </span>
-                    </button>
-                  ))}
+                {/* 3D Preview */}
+                <div className="flex-1 min-h-0">
+                  <AircraftPreview aircraftId={AIRCRAFT[focusedIdx].id} />
+                </div>
+
+                {/* Info */}
+                <div className="text-center pb-2">
+                  <p className="text-[16px] font-mono text-white/70">{AIRCRAFT[focusedIdx].name}</p>
+                  <p className="text-[10px] text-white/25 mt-1">{AIRCRAFT[focusedIdx].nameKo} · {AIRCRAFT[focusedIdx].type}</p>
+                </div>
+
+                {/* Carousel nav */}
+                <div className="flex items-center justify-center gap-5 pb-3">
+                  <button
+                    onClick={() => setFocusedIdx(i => (i - 1 + AIRCRAFT.length) % AIRCRAFT.length)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-white/25" />
+                  </button>
+                  <div className="flex gap-1.5">
+                    {AIRCRAFT.map((_, i) => (
+                      <button key={i} onClick={() => setFocusedIdx(i)}
+                        className={`w-1.5 h-1.5 rounded-full transition-colors ${i === focusedIdx ? 'bg-sky-400/60' : 'bg-white/10'}`} />
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setFocusedIdx(i => (i + 1) % AIRCRAFT.length)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4 text-white/25" />
+                  </button>
+                </div>
+
+                {/* Select button */}
+                <div className="px-5 pb-5">
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => selectAircraft(AIRCRAFT[focusedIdx])}
+                    className="w-full py-3 rounded-lg bg-white/[0.06] text-white/60 font-medium text-[13px] tracking-wide hover:bg-white/[0.1] hover:text-white/80 transition-all duration-300"
+                  >
+                    선택
+                  </motion.button>
                 </div>
               </motion.div>
             )}

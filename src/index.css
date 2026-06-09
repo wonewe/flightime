@@ -101,3 +101,13 @@ body {
   font-family: 'JetBrains Mono', monospace;
   font-variant-numeric: tabular-nums;
 }
+
+/* Globe canvas fade */
+.globe-canvas {
+  opacity: 0;
+  animation: globe-fade-in 1.2s ease-out 0.3s forwards;
+}
+
+@keyframes globe-fade-in {
+  to { opacity: 1; }
+}
