@@ -17,6 +17,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('home')
   const [config, setConfig] = useState<FlightConfig | null>(null)
   const [durationMinutes, setDurationMinutes] = useState(50)
+  const [todos, setTodos] = useState<string[]>([])
   const migrated = useRef(false)
   const [presenceMap, setPresenceMap] = useState<Map<string, PresenceState>>(new Map())
 
@@ -41,8 +42,9 @@ export default function App() {
     setScreen('boarding')
   }, [])
 
-  const handleBoard = useCallback((minutes: number) => {
+  const handleBoard = useCallback((minutes: number, todoItems: string[]) => {
     setDurationMinutes(minutes)
+    setTodos(todoItems)
     setScreen('inflight')
   }, [])
 
@@ -60,7 +62,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen bg-night-950 flex items-center justify-center">
+      <div className="h-full w-full bg-night-950 flex items-center justify-center">
         <div className="text-white/20 text-[12px] font-mono tracking-widest">LOADING...</div>
       </div>
     )
@@ -68,14 +70,14 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="h-screen w-screen bg-night-950 overflow-hidden">
+      <div className="h-full w-full bg-night-950 overflow-hidden">
         <AuthScreen />
       </div>
     )
   }
 
   return (
-    <div className="h-screen w-screen bg-night-950 overflow-hidden">
+    <div className="h-full w-full bg-night-950 overflow-hidden">
       <AnimatePresence mode="wait">
         {screen === 'home' && (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="h-full">
@@ -89,7 +91,7 @@ export default function App() {
         )}
         {screen === 'inflight' && config && (
           <motion.div key="inflight" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.6 }} className="h-full">
-            <FlightView config={config} durationMinutes={durationMinutes} onLanded={handleLanded} onExit={handleGoHome} />
+            <FlightView config={config} durationMinutes={durationMinutes} todos={todos} onLanded={handleLanded} onExit={handleGoHome} />
           </motion.div>
         )}
         {screen === 'landed' && config && (

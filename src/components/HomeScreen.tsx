@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plane, History, Users, X, Trash2, Search, ArrowLeft, ChevronRight, ChevronLeft, LogOut } from 'lucide-react'
+import { Plane, History, Users, X, Trash2, Search, ArrowLeft, ChevronRight, ChevronLeft, LogOut, Settings, MapPin } from 'lucide-react'
 import createGlobe from 'cobe'
 import type { Airport, Aircraft, FlightConfig, TripRecord } from '../types'
 import { AIRPORTS, AIRCRAFT, SEAT_OPTIONS } from '../constants'
@@ -9,6 +9,7 @@ import { loadTripsSupabase, deleteTripsSupabase, deleteTripsByIds } from '../uti
 import { useAuth } from '../contexts/AuthContext'
 import { HistoryMap } from './HistoryMap'
 import { FriendsPanel } from './FriendsPanel'
+import { SettingsPanel, getHubAirport } from './SettingsPanel'
 import { useFriends } from '../hooks/useFriends'
 import type { PresenceState } from '../types'
 
@@ -37,6 +38,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [showHistory, setShowHistory] = useState(false)
   const [showFriends, setShowFriends] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const { pendingReceived } = useFriends(user?.id)
   const [trips, setTrips] = useState<TripRecord[]>([])
   const [expandedRoute, setExpandedRoute] = useState<string | null>(null)
@@ -248,17 +250,17 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
   // Route summary shown in aircraft/seat phases
   const routeSummary = fromAirport && toAirport && (
     <div className="mb-5 flex items-center gap-2">
-      <span className="text-[13px] font-mono font-bold tracking-[0.2em] text-sky-400/60">
+      <span className="text-[13px] font-mono font-bold tracking-[0.2em] text-sky-400/80">
         {fromAirport.code}
       </span>
-      <Plane className="w-3 h-3 text-white/15 mx-1" />
-      <span className="text-[13px] font-mono font-bold tracking-[0.2em] text-sky-400/60">
+      <Plane className="w-3 h-3 text-white/30 mx-1" />
+      <span className="text-[13px] font-mono font-bold tracking-[0.2em] text-sky-400/80">
         {toAirport.code}
       </span>
       {aircraft && (
         <>
-          <span className="text-white/10 mx-1">·</span>
-          <span className="text-[10px] font-mono text-white/25">{aircraft.name}</span>
+          <span className="text-white/20 mx-1">·</span>
+          <span className="text-[10px] font-mono text-white/45">{aircraft.name}</span>
         </>
       )}
     </div>
@@ -298,24 +300,31 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
               transition={{ duration: 0.35, ease }}
               className="absolute inset-0 flex flex-col items-center justify-center px-6"
             >
-              {/* User info + logout */}
+              {/* User info + settings + logout */}
               <div className="absolute top-4 right-4 flex items-center gap-2">
                 {user && (
-                  <span className="text-[10px] font-mono text-white/25 tracking-wider">
+                  <span className="text-[10px] font-mono text-white/45 tracking-wider">
                     {user.user_metadata?.username ?? ''}
                   </span>
                 )}
                 <button
+                  onClick={() => setShowSettings(true)}
+                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                  title="설정"
+                >
+                  <Settings className="w-3.5 h-3.5 text-white/40" />
+                </button>
+                <button
                   onClick={signOut}
-                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors"
+                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
                   title="로그아웃"
                 >
-                  <LogOut className="w-3.5 h-3.5 text-white/25" />
+                  <LogOut className="w-3.5 h-3.5 text-white/40" />
                 </button>
               </div>
 
               <div className="mb-2 mt-8">
-                <h1 className="text-[32px] font-mono font-bold text-white/40 tracking-[0.4em] text-center">
+                <h1 className="text-[32px] font-mono font-bold text-white/55 tracking-[0.4em] text-center">
                   FLIGHTIME
                 </h1>
               </div>
@@ -327,7 +336,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleStartTrip}
-                  className="w-full py-3.5 rounded-xl bg-white/[0.07] border border-white/[0.06] text-white/70 font-medium text-[13px] tracking-wide hover:bg-white/[0.12] hover:text-white/90 transition-all duration-300 flex items-center justify-center gap-2.5"
+                  className="w-full py-3.5 rounded-xl bg-white/[0.08] border border-white/[0.10] text-white/80 font-medium text-[13px] tracking-wide hover:bg-white/[0.14] hover:text-white/95 transition-all duration-300 flex items-center justify-center gap-2.5"
                 >
                   <Plane className="w-3.5 h-3.5" />
                   새 여행 떠나기
@@ -337,7 +346,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setShowFriends(true)}
-                  className="w-full py-3 rounded-xl bg-transparent border border-white/[0.04] text-white/30 text-[12px] tracking-wide hover:bg-white/[0.04] hover:text-white/50 transition-all duration-300 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-transparent border border-white/[0.08] text-white/50 text-[12px] tracking-wide hover:bg-white/[0.06] hover:text-white/70 transition-all duration-300 flex items-center justify-center gap-2"
                 >
                   <Users className="w-3.5 h-3.5" />
                   친구
@@ -350,12 +359,12 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleToggleHistory}
-                  className="w-full py-3 rounded-xl bg-transparent border border-white/[0.04] text-white/30 text-[12px] tracking-wide hover:bg-white/[0.04] hover:text-white/50 transition-all duration-300 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-transparent border border-white/[0.08] text-white/50 text-[12px] tracking-wide hover:bg-white/[0.06] hover:text-white/70 transition-all duration-300 flex items-center justify-center gap-2"
                 >
                   <History className="w-3.5 h-3.5" />
                   기존 여행 보기
                   {trips.length > 0 && (
-                    <span className="text-[9px] font-mono text-sky-400/50 ml-1">{trips.length}</span>
+                    <span className="text-[9px] font-mono text-sky-400/60 ml-1">{trips.length}</span>
                   )}
                 </motion.button>
               </div>
@@ -374,37 +383,54 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
               transition={{ duration: 0.35, ease }}
               className="absolute inset-0 flex flex-col items-center justify-center px-6"
             >
-              <button onClick={handleBack} className="absolute top-5 left-5 w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors">
-                <ArrowLeft className="w-4 h-4 text-white/30" />
+              <button onClick={handleBack} className="absolute top-5 left-5 w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                <ArrowLeft className="w-4 h-4 text-white/50" />
               </button>
 
               {phase === 'selectTo' && fromAirport && (
                 <div className="mb-5 flex items-center gap-2">
-                  <span className="text-[13px] font-mono font-bold tracking-[0.2em] text-sky-400/60">
+                  <span className="text-[13px] font-mono font-bold tracking-[0.2em] text-sky-400/80">
                     {fromAirport.code}
                   </span>
-                  <span className="text-[10px] text-white/20">{fromAirport.cityKo}</span>
-                  <Plane className="w-3 h-3 text-white/15 mx-1" />
-                  <span className="text-[13px] font-mono text-white/20 tracking-wider">???</span>
+                  <span className="text-[10px] text-white/40">{fromAirport.cityKo}</span>
+                  <Plane className="w-3 h-3 text-white/30 mx-1" />
+                  <span className="text-[13px] font-mono text-white/35 tracking-wider">???</span>
                 </div>
               )}
 
-              <h2 className="text-[18px] font-mono font-semibold text-white/50 tracking-[0.1em] mb-5">
+              <h2 className="text-[18px] font-mono font-semibold text-white/70 tracking-[0.1em] mb-5">
                 {phase === 'selectFrom' ? '어디에서 출발할까요?' : '어디로 떠날까요?'}
               </h2>
 
               <div className="w-full max-w-[300px] mb-3">
-                <div className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.06] rounded-xl px-4 py-3">
-                  <Search className="w-4 h-4 text-white/20" />
+                <div className="flex items-center gap-2 bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3">
+                  <Search className="w-4 h-4 text-white/35" />
                   <input
                     type="text"
                     placeholder="도시 또는 공항코드"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="flex-1 bg-transparent text-[14px] font-mono text-white/70 placeholder:text-white/20 outline-none"
+                    className="flex-1 bg-transparent text-[14px] font-mono text-white/80 placeholder:text-white/35 outline-none"
                     autoFocus
                   />
                 </div>
+
+                {phase === 'selectFrom' && (() => {
+                  const hub = getHubAirport()
+                  return hub ? (
+                    <button
+                      onClick={() => handleSelectAirport(hub)}
+                      className="w-full mt-2.5 flex items-center justify-between px-4 py-3 rounded-xl bg-sky-400/[0.08] border border-sky-400/[0.18] hover:bg-sky-400/[0.14] transition-all duration-300 group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <MapPin className="w-3.5 h-3.5 text-sky-400/70" />
+                        <span className="text-[13px] font-mono font-bold tracking-wider text-sky-400/90">{hub.code}</span>
+                        <span className="text-[11px] text-white/50">{hub.cityKo}</span>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-sky-400/40 group-hover:text-sky-400/70 transition-colors" />
+                    </button>
+                  ) : null
+                })()}
               </div>
 
               <AnimatePresence>
@@ -414,26 +440,26 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
                     transition={{ duration: 0.2 }}
-                    className="w-full max-w-[300px] max-h-[200px] overflow-y-auto rounded-xl bg-night-950/80 backdrop-blur-md border border-white/[0.06]"
+                    className="w-full max-w-[300px] max-h-[200px] overflow-y-auto rounded-xl bg-night-950/90 backdrop-blur-md border border-white/[0.10]"
                   >
                     {filteredAirports.length === 0 ? (
-                      <div className="px-4 py-4 text-center text-[11px] text-white/20">검색 결과 없음</div>
+                      <div className="px-4 py-4 text-center text-[11px] text-white/40">검색 결과 없음</div>
                     ) : (
                       filteredAirports.map(airport => (
                         <button
                           key={airport.code}
                           onClick={() => handleSelectAirport(airport)}
-                          className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/[0.05] transition-colors group"
+                          className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/[0.07] transition-colors group"
                         >
                           <div className="flex items-center gap-3">
-                            <span className="text-[14px] font-mono font-semibold tracking-[0.15em] text-white/60 w-10">
+                            <span className="text-[14px] font-mono font-semibold tracking-[0.15em] text-white/75 w-10">
                               {airport.code}
                             </span>
                             <div className="text-left">
-                              <p className="text-[12px] text-white/35">{airport.cityKo}</p>
+                              <p className="text-[12px] text-white/50">{airport.cityKo}</p>
                             </div>
                           </div>
-                          <ChevronRight className="w-3 h-3 text-white/0 group-hover:text-white/20 transition-colors" />
+                          <ChevronRight className="w-3 h-3 text-white/0 group-hover:text-white/30 transition-colors" />
                         </button>
                       ))
                     )}
@@ -455,22 +481,22 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
               transition={{ duration: 0.35, ease }}
               className="absolute inset-0 flex flex-col items-center justify-center px-6"
             >
-              <button onClick={handleBack} className="absolute top-5 left-5 w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors">
-                <ArrowLeft className="w-4 h-4 text-white/30" />
+              <button onClick={handleBack} className="absolute top-5 left-5 w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                <ArrowLeft className="w-4 h-4 text-white/50" />
               </button>
 
               {routeSummary}
 
-              <h2 className="text-[18px] font-mono font-semibold text-white/50 tracking-[0.1em] mb-8">
+              <h2 className="text-[18px] font-mono font-semibold text-white/70 tracking-[0.1em] mb-8">
                 기체를 선택하세요
               </h2>
 
               {/* Aircraft info */}
               <div className="text-center mb-2">
-                <p className="text-[22px] font-mono font-bold text-white/60 tracking-wider">
+                <p className="text-[22px] font-mono font-bold text-white/75 tracking-wider">
                   {AIRCRAFT[focusedIdx].name}
                 </p>
-                <p className="text-[11px] text-white/25 mt-2">
+                <p className="text-[11px] text-white/45 mt-2">
                   {AIRCRAFT[focusedIdx].nameKo} · {AIRCRAFT[focusedIdx].type}
                 </p>
               </div>
@@ -479,23 +505,23 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
               <div className="flex items-center justify-center gap-6 my-6">
                 <button
                   onClick={() => setFocusedIdx(i => (i - 1 + AIRCRAFT.length) % AIRCRAFT.length)}
-                  className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors"
+                  className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
                 >
-                  <ChevronLeft className="w-5 h-5 text-white/25" />
+                  <ChevronLeft className="w-5 h-5 text-white/45" />
                 </button>
                 <div className="flex gap-2">
                   {AIRCRAFT.map((_, i) => (
                     <button key={i} onClick={() => setFocusedIdx(i)}
                       className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                        i === focusedIdx ? 'bg-sky-400/60 scale-125' : 'bg-white/10'
+                        i === focusedIdx ? 'bg-sky-400/70 scale-125' : 'bg-white/20'
                       }`} />
                   ))}
                 </div>
                 <button
                   onClick={() => setFocusedIdx(i => (i + 1) % AIRCRAFT.length)}
-                  className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors"
+                  className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
                 >
-                  <ChevronRight className="w-5 h-5 text-white/25" />
+                  <ChevronRight className="w-5 h-5 text-white/45" />
                 </button>
               </div>
 
@@ -505,7 +531,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleSelectAircraft(AIRCRAFT[focusedIdx])}
-                  className="w-full py-3 rounded-xl bg-white/[0.07] border border-white/[0.06] text-white/60 font-medium text-[13px] tracking-wide hover:bg-white/[0.12] hover:text-white/80 transition-all duration-300"
+                  className="w-full py-3 rounded-xl bg-white/[0.08] border border-white/[0.10] text-white/75 font-medium text-[13px] tracking-wide hover:bg-white/[0.14] hover:text-white/90 transition-all duration-300"
                 >
                   선택
                 </motion.button>
@@ -525,13 +551,13 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
               transition={{ duration: 0.35, ease }}
               className="absolute inset-0 flex flex-col items-center justify-center px-6"
             >
-              <button onClick={handleBack} className="absolute top-5 left-5 w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors">
-                <ArrowLeft className="w-4 h-4 text-white/30" />
+              <button onClick={handleBack} className="absolute top-5 left-5 w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                <ArrowLeft className="w-4 h-4 text-white/50" />
               </button>
 
               {routeSummary}
 
-              <h2 className="text-[18px] font-mono font-semibold text-white/50 tracking-[0.1em] mb-8">
+              <h2 className="text-[18px] font-mono font-semibold text-white/70 tracking-[0.1em] mb-8">
                 좌석을 선택하세요
               </h2>
 
@@ -542,15 +568,15 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => handleSelectSeat(opt)}
-                    className="flex flex-col items-center py-6 rounded-xl bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.07] hover:border-white/[0.1] transition-all duration-300"
+                    className="flex flex-col items-center py-6 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.09] hover:border-white/[0.14] transition-all duration-300"
                   >
                     <div className="mb-3">
                       {opt.id === 'window' && <WindowIcon />}
                       {opt.id === 'middle' && <MiddleIcon />}
                       {opt.id === 'aisle' && <AisleIcon />}
                     </div>
-                    <p className="text-[13px] text-white/60">{opt.label}</p>
-                    <p className="text-[9px] font-mono text-white/15 mt-1 tracking-wider">{opt.labelEn}</p>
+                    <p className="text-[13px] text-white/70">{opt.label}</p>
+                    <p className="text-[9px] font-mono text-white/30 mt-1 tracking-wider">{opt.labelEn}</p>
                   </motion.button>
                 ))}
               </div>
@@ -583,8 +609,8 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
 
             {/* Close button */}
             <button onClick={handleToggleHistory}
-              className="absolute top-4 right-4 z-[1001] w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-md bg-white/[0.04] border border-white/[0.06] hover:bg-white/10 transition-colors">
-              <X className="w-4 h-4 text-white/40" />
+              className="absolute top-4 right-4 z-[1001] w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-md bg-white/[0.06] border border-white/[0.10] hover:bg-white/15 transition-colors">
+              <X className="w-4 h-4 text-white/60" />
             </button>
 
             {/* Side card panel */}
@@ -598,25 +624,25 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
                   className="backdrop-blur-xl bg-white/[0.05] border border-white/[0.08] rounded-2xl p-5 mb-3 pointer-events-auto"
                 >
                   <div className="flex items-center gap-2 mb-4">
-                    <History className="w-4 h-4 text-white/35" />
-                    <span className="text-[12px] font-mono text-white/50 tracking-[0.15em]">비행 기록</span>
+                    <History className="w-4 h-4 text-white/50" />
+                    <span className="text-[12px] font-mono text-white/60 tracking-[0.15em]">비행 기록</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-5 gap-y-3">
                     <div>
-                      <p className="text-[8px] font-mono text-white/30 tracking-[0.2em]">FLIGHTS</p>
-                      <p className="text-[20px] font-mono font-bold text-white/75 mt-0.5">{trips.length}<span className="text-[10px] text-white/30 ml-1">회</span></p>
+                      <p className="text-[8px] font-mono text-white/45 tracking-[0.2em]">FLIGHTS</p>
+                      <p className="text-[20px] font-mono font-bold text-white/85 mt-0.5">{trips.length}<span className="text-[10px] text-white/45 ml-1">회</span></p>
                     </div>
                     <div>
-                      <p className="text-[8px] font-mono text-white/30 tracking-[0.2em]">CITIES</p>
-                      <p className="text-[20px] font-mono font-bold text-white/75 mt-0.5">{totalStats.cityCount}<span className="text-[10px] text-white/30 ml-1">곳</span></p>
+                      <p className="text-[8px] font-mono text-white/45 tracking-[0.2em]">CITIES</p>
+                      <p className="text-[20px] font-mono font-bold text-white/85 mt-0.5">{totalStats.cityCount}<span className="text-[10px] text-white/45 ml-1">곳</span></p>
                     </div>
                     <div>
-                      <p className="text-[8px] font-mono text-white/30 tracking-[0.2em]">DISTANCE</p>
-                      <p className="text-[20px] font-mono font-bold text-white/75 mt-0.5">{fmtDist(totalStats.totalKm)}<span className="text-[10px] text-white/30 ml-1">km</span></p>
+                      <p className="text-[8px] font-mono text-white/45 tracking-[0.2em]">DISTANCE</p>
+                      <p className="text-[20px] font-mono font-bold text-white/85 mt-0.5">{fmtDist(totalStats.totalKm)}<span className="text-[10px] text-white/45 ml-1">km</span></p>
                     </div>
                     <div>
-                      <p className="text-[8px] font-mono text-white/30 tracking-[0.2em]">FOCUS TIME</p>
-                      <p className="text-[16px] font-mono font-bold text-white/75 mt-1">{fmtTotal(totalStats.totalMin)}</p>
+                      <p className="text-[8px] font-mono text-white/45 tracking-[0.2em]">FOCUS TIME</p>
+                      <p className="text-[16px] font-mono font-bold text-white/85 mt-1">{fmtTotal(totalStats.totalMin)}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -626,8 +652,8 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
               <div className="flex-1 overflow-y-auto space-y-3 pointer-events-auto pr-1">
                 {routeGroups.length === 0 ? (
                   <div className="backdrop-blur-xl bg-white/[0.04] border border-white/[0.06] rounded-2xl p-6 text-center">
-                    <Plane className="w-6 h-6 text-white/10 mx-auto mb-2" />
-                    <p className="text-[11px] text-white/25">비행 기록 없음</p>
+                    <Plane className="w-6 h-6 text-white/20 mx-auto mb-2" />
+                    <p className="text-[11px] text-white/40">비행 기록 없음</p>
                   </div>
                 ) : (
                   routeGroups.map((rg, i) => {
@@ -649,15 +675,15 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
-                            <span className="text-[18px] font-mono font-bold text-white/80 tracking-wider">{rg.from.code}</span>
-                            <Plane className="w-3 h-3 text-white/25" />
-                            <span className="text-[18px] font-mono font-bold text-white/80 tracking-wider">{rg.to.code}</span>
+                            <span className="text-[18px] font-mono font-bold text-white/85 tracking-wider">{rg.from.code}</span>
+                            <Plane className="w-3 h-3 text-white/40" />
+                            <span className="text-[18px] font-mono font-bold text-white/85 tracking-wider">{rg.to.code}</span>
                           </div>
-                          <span className="text-[10px] font-mono text-sky-400/50">{rg.records.length}회</span>
+                          <span className="text-[10px] font-mono text-sky-400/70">{rg.records.length}회</span>
                         </div>
                         <div className="flex items-center justify-between mt-2">
-                          <span className="text-[11px] text-white/35">{rg.from.cityKo} → {rg.to.cityKo}</span>
-                          <span className="text-[10px] font-mono text-white/20">{rg.records[0].config.distanceKm.toLocaleString()}km</span>
+                          <span className="text-[11px] text-white/50">{rg.from.cityKo} → {rg.to.cityKo}</span>
+                          <span className="text-[10px] font-mono text-white/35">{rg.records[0].config.distanceKm.toLocaleString()}km</span>
                         </div>
                       </button>
 
@@ -672,19 +698,19 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
                           >
                             <div className="mt-2 backdrop-blur-xl bg-white/[0.03] border border-white/[0.05] rounded-xl p-3.5 space-y-2">
                               {rg.records.map(trip => (
-                                <div key={trip.id} className="flex items-center justify-between text-[10px] font-mono text-white/40 py-0.5">
+                                <div key={trip.id} className="flex items-center justify-between text-[10px] font-mono text-white/55 py-0.5">
                                   <div className="flex items-center gap-3">
                                     <span>{fmtDate(trip.completedAt)}</span>
-                                    <span className="text-white/25">{fmt(trip.durationMinutes)}</span>
+                                    <span className="text-white/40">{fmt(trip.durationMinutes)}</span>
                                   </div>
-                                  <span className="text-[9px] text-white/20">{trip.config.aircraft.name.split(' ').slice(0,2).join(' ')}</span>
+                                  <span className="text-[9px] text-white/35">{trip.config.aircraft.name.split(' ').slice(0,2).join(' ')}</span>
                                 </div>
                               ))}
-                              <div className="pt-2 mt-1 border-t border-white/[0.06] flex items-center justify-between text-[9px] font-mono text-white/25">
+                              <div className="pt-2 mt-1 border-t border-white/[0.08] flex items-center justify-between text-[9px] font-mono text-white/40">
                                 <span>총 {rg.records.length}회 · {routeKm.toLocaleString()} km</span>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleDeleteRoute(rg.key, rg.records.map(r => r.id)) }}
-                                  className="flex items-center gap-1 text-white/15 hover:text-red-400/60 transition-colors"
+                                  className="flex items-center gap-1 text-white/30 hover:text-red-400/70 transition-colors"
                                 >
                                   <Trash2 className="w-2.5 h-2.5" />
                                   삭제
@@ -703,7 +729,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
                 <div className="mt-3 pointer-events-auto">
                   <button
                     onClick={handleClearTrips}
-                    className="flex items-center gap-1.5 text-[11px] text-white/15 hover:text-red-400/50 transition-colors"
+                    className="flex items-center gap-1.5 text-[11px] text-white/30 hover:text-red-400/60 transition-colors"
                   >
                     <Trash2 className="w-3 h-3" />
                     기록 삭제
@@ -719,6 +745,11 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
       {showFriends && (
         <FriendsPanel onClose={() => setShowFriends(false)} presenceMap={presenceMap} />
       )}
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <SettingsPanel onClose={() => setShowSettings(false)} />
+      )}
     </div>
   )
 }
@@ -726,7 +757,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
 // ─── Seat icons ────────────────────────────────────────────────────
 function WindowIcon() {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-white/20">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-white/35">
       <rect x="3" y="6" width="18" height="12" rx="6" stroke="currentColor" strokeWidth="1.5" />
       <path d="M7 10C7 10 9 8 12 8C15 8 17 10 17 10" stroke="currentColor" strokeWidth="1" opacity="0.5" />
     </svg>
@@ -735,7 +766,7 @@ function WindowIcon() {
 
 function MiddleIcon() {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-white/20">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-white/35">
       <rect x="5" y="7" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
       <line x1="9" y1="7" x2="9" y2="17" stroke="currentColor" strokeWidth="0.5" opacity="0.3" />
       <line x1="15" y1="7" x2="15" y2="17" stroke="currentColor" strokeWidth="0.5" opacity="0.3" />
@@ -745,7 +776,7 @@ function MiddleIcon() {
 
 function AisleIcon() {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-white/20">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-white/35">
       <rect x="4" y="7" width="7" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
       <rect x="13" y="7" width="7" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
       <line x1="12" y1="9" x2="12" y2="15" stroke="currentColor" strokeWidth="0.5" opacity="0.3" strokeDasharray="2 2" />

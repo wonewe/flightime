@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Settings, Pause, Play, Volume2, VolumeX } from 'lucide-react'
+import { X, Settings, Pause, Play, Volume2, VolumeX, CheckCircle2, Circle, ListTodo } from 'lucide-react'
 import { FlightMap } from './FlightMap'
 import { useTimer } from '../hooks/useTimer'
 import { useAmbientNoise } from '../hooks/useAmbientNoise'
@@ -14,6 +14,7 @@ import type { FlightConfig, FlightPhase } from '../types'
 interface Props {
   config: FlightConfig
   durationMinutes: number
+  todos: string[]
   onLanded: () => void
   onExit: () => void
 }
@@ -41,7 +42,7 @@ function calcSpd(prog: number, p: FlightPhase): number {
   return 0
 }
 
-export function FlightView({ config, durationMinutes, onLanded, onExit }: Props) {
+export function FlightView({ config, durationMinutes, todos, onLanded, onExit }: Props) {
   const { user } = useAuth()
   const { friendUserIds, acceptedFriends, getFriendUserId } = useFriends(user?.id)
   const { flights: friendFlightsMap } = useFriendFlights(friendUserIds)
@@ -51,6 +52,8 @@ export function FlightView({ config, durationMinutes, onLanded, onExit }: Props)
   const { from, to, flightNumber, distanceKm } = config
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [volumeOpen, setVolumeOpen] = useState(false)
+  const [exitConfirm, setExitConfirm] = useState(false)
+  const [todoDone, setTodoDone] = useState<Set<number>>(new Set())
   const [hud, setHud] = useState<HudSettings>({ showRoute: true, showTimer: true, showPhase: true, showStats: true })
   const soundOn = noise.volume > 0
   const prevVolRef = useRef(0.5)
@@ -178,7 +181,7 @@ export function FlightView({ config, durationMinutes, onLanded, onExit }: Props)
         <button onClick={() => { setSettingsOpen(v => !v); setVolumeOpen(false) }} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
           <Settings className="w-3.5 h-3.5 text-white/25" />
         </button>
-        <button onClick={() => { timer.stop(); onExit() }} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+        <button onClick={() => { setExitConfirm(true); setSettingsOpen(false); setVolumeOpen(false) }} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
           <X className="w-3.5 h-3.5 text-white/25" />
         </button>
       </div>
@@ -226,19 +229,19 @@ export function FlightView({ config, durationMinutes, onLanded, onExit }: Props)
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.6 }}
         className="absolute bottom-0 left-0 right-0 z-[1000] pointer-events-none">
         <div className="px-7 pb-7">
-          {hud.showTimer && <p className="timer-display text-5xl font-bold text-white leading-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]">{formatTime(timer.remainingMs)}</p>}
+          {hud.showTimer && <p className="timer-display text-6xl font-bold text-white leading-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]">{formatTime(timer.remainingMs)}</p>}
           {hud.showPhase && (
-            <div className="flex items-center gap-2 mt-3 mb-5">
+            <div className="flex items-center gap-2.5 mt-3.5 mb-5">
               <AnimatePresence mode="wait">
-                <motion.div key={timer.phase} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
-                  <div className={`w-1.5 h-1.5 rounded-full ${pc}`} />
-                  <span className="text-xs font-mono tracking-wider text-white/40 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">{phaseLabel(timer.phase)}</span>
+                <motion.div key={timer.phase} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2.5">
+                  <div className={`w-2 h-2 rounded-full ${pc}`} />
+                  <span className="text-sm font-mono tracking-wider text-white/45 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">{phaseLabel(timer.phase)}</span>
                 </motion.div>
               </AnimatePresence>
             </div>
           )}
           {hud.showStats && (
-            <div className="flex items-center gap-7">
+            <div className="flex items-center gap-8">
               <Stat label="SPD" value={`${spd}`} unit="km/h" />
               <Stat label="ALT" value={`${(alt/1000).toFixed(1)}`} unit="kft" />
               <Stat label="REM" value={`${remaining > 0 ? remaining : 0}`} unit="km" />
@@ -247,6 +250,81 @@ export function FlightView({ config, durationMinutes, onLanded, onExit }: Props)
           )}
         </div>
       </motion.div>
+
+      {/* Todo list */}
+      {todos.length > 0 && (
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8, duration: 0.5 }}
+          className="absolute top-16 left-5 z-[1000] w-[260px]">
+          <div className="backdrop-blur-md bg-black/35 border border-white/[0.10] rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-3.5">
+              <ListTodo className="w-4 h-4 text-white/35" />
+              <span className="text-[11px] font-mono text-white/40 tracking-wider">TO-DO</span>
+              <span className="text-[11px] font-mono text-white/25 ml-auto">{todoDone.size}/{todos.length}</span>
+            </div>
+            <div className="space-y-2">
+              {todos.map((item, i) => {
+                const done = todoDone.has(i)
+                return (
+                  <button key={i} onClick={() => setTodoDone(prev => {
+                    const next = new Set(prev)
+                    done ? next.delete(i) : next.add(i)
+                    return next
+                  })} className="w-full flex items-center gap-3 text-left group py-1">
+                    {done
+                      ? <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400/70 flex-shrink-0" />
+                      : <Circle className="w-4.5 h-4.5 text-white/25 group-hover:text-white/45 flex-shrink-0" />}
+                    <span className={`text-[13px] font-mono leading-snug ${done ? 'text-white/25 line-through' : 'text-white/55'}`}>{item}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Exit confirmation modal */}
+      <AnimatePresence>
+        {exitConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setExitConfirm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="bg-night-900 border-2 border-white/[0.15] rounded-2xl p-6 w-[280px]"
+              onClick={e => e.stopPropagation()}
+            >
+              <p className="text-[14px] font-mono font-semibold text-white/80 text-center mb-2">
+                비행 종료
+              </p>
+              <p className="text-[12px] text-white/50 text-center mb-6">
+                정말로 비행을 종료하시겠습니까?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setExitConfirm(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.10] text-white/60 text-[12px] font-mono hover:bg-white/[0.10] transition-all"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => { timer.stop(); onExit() }}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500/15 border border-red-500/25 text-red-400/80 text-[12px] font-mono hover:bg-red-500/25 transition-all"
+                >
+                  종료
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -254,9 +332,9 @@ export function FlightView({ config, durationMinutes, onLanded, onExit }: Props)
 function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
     <div>
-      <p className="text-[10px] text-white/20 tracking-wider mb-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{label}</p>
-      <p className="text-[15px] font-mono text-white/55 leading-none drop-shadow-[0_1px_5px_rgba(0,0,0,0.9)]">
-        {value}{unit && <span className="text-[11px] text-white/25 ml-0.5">{unit}</span>}
+      <p className="text-[11px] text-white/30 tracking-wider mb-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{label}</p>
+      <p className="text-[17px] font-mono text-white/60 leading-none drop-shadow-[0_1px_5px_rgba(0,0,0,0.9)]">
+        {value}{unit && <span className="text-[12px] text-white/30 ml-0.5">{unit}</span>}
       </p>
     </div>
   )

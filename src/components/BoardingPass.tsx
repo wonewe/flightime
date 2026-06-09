@@ -1,12 +1,12 @@
 import { useState, useMemo, useCallback } from 'react'
 import { motion, useAnimation } from 'framer-motion'
-import { Plane } from 'lucide-react'
+import { Plane, Plus, X } from 'lucide-react'
 import { DURATION_PRESETS } from '../constants'
 import type { FlightConfig } from '../types'
 
 interface Props {
   config: FlightConfig
-  onBoard: (durationMinutes: number) => void
+  onBoard: (durationMinutes: number, todos: string[]) => void
 }
 
 // ─── Barcode (fixed height) ────────────────────────────────────────
@@ -56,6 +56,8 @@ export function BoardingPass({ config, onBoard }: Props) {
   const [customMinutes, setCustomMinutes] = useState('')
   const [isCustom, setIsCustom] = useState(false)
   const [tearing, setTearing] = useState(false)
+  const [todoItems, setTodoItems] = useState<string[]>([])
+  const [todoInput, setTodoInput] = useState('')
   const { from, to, aircraft, seat, distanceKm, flightNumber } = config
 
   const stubCtrl = useAnimation()
@@ -99,8 +101,8 @@ export function BoardingPass({ config, onBoard }: Props) {
       }),
     ])
 
-    onBoard(minutes)
-  }, [isCustom, customMinutes, selectedMinutes, tearing, stubCtrl, mainCtrl, tearLineCtrl, onBoard])
+    onBoard(minutes, todoItems)
+  }, [isCustom, customMinutes, selectedMinutes, tearing, stubCtrl, mainCtrl, tearLineCtrl, onBoard, todoItems])
 
   return (
     <div className="h-full flex flex-col items-center justify-center relative overflow-hidden">
@@ -112,9 +114,9 @@ export function BoardingPass({ config, onBoard }: Props) {
 
         {/* ── Boarding Pass Card (wide) ── */}
         <motion.div
-          initial={{ opacity: 0, y: 24, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.9, ease }}
+          initial={{ opacity: 0, x: 320 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease }}
           className="flex relative"
           style={{ filter: 'drop-shadow(0 8px 32px rgba(6,10,20,0.6))' }}
         >
@@ -251,6 +253,45 @@ export function BoardingPass({ config, onBoard }: Props) {
               className="flex-1 bg-transparent text-[12px] font-mono text-white/50 placeholder:text-white/12 outline-none"
               min={1} max={480} />
             <span className="text-[10px] text-white/12 font-mono ml-2">min</span>
+          </div>
+
+          {/* Todo list */}
+          <div className="mt-5">
+            <p className="text-[9px] font-mono text-white/20 tracking-[0.25em] mb-3 text-center">TO-DO</p>
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                placeholder="이 시간에 할 일"
+                value={todoInput}
+                onChange={e => setTodoInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && todoInput.trim()) {
+                    setTodoItems(prev => [...prev, todoInput.trim()])
+                    setTodoInput('')
+                  }
+                }}
+                className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-[13px] font-mono text-white/65 placeholder:text-white/20 outline-none"
+              />
+              <button
+                onClick={() => { if (todoInput.trim()) { setTodoItems(prev => [...prev, todoInput.trim()]); setTodoInput('') } }}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.12] transition-colors"
+              >
+                <Plus className="w-4 h-4 text-white/40" />
+              </button>
+            </div>
+            {todoItems.length > 0 && (
+              <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
+                {todoItems.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.04] group">
+                    <span className="text-[13px] font-mono text-white/50">{item}</span>
+                    <button onClick={() => setTodoItems(prev => prev.filter((_, j) => j !== i))}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <X className="w-3.5 h-3.5 text-white/25 hover:text-white/50" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <motion.button
