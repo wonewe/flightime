@@ -7,7 +7,8 @@ import { BoardingPass } from './components/BoardingPass'
 import { FlightView } from './components/FlightView'
 import { LandingComplete } from './components/LandingComplete'
 import { saveTripSupabase, migrateLocalTrips } from './utils/tripHistorySupabase'
-import type { FlightConfig } from './types'
+import { useOnlinePresence } from './hooks/useOnlinePresence'
+import type { FlightConfig, PresenceState } from './types'
 
 type Screen = 'home' | 'boarding' | 'inflight' | 'landed'
 
@@ -17,6 +18,15 @@ export default function App() {
   const [config, setConfig] = useState<FlightConfig | null>(null)
   const [durationMinutes, setDurationMinutes] = useState(50)
   const migrated = useRef(false)
+  const [presenceMap, setPresenceMap] = useState<Map<string, PresenceState>>(new Map())
+
+  const presenceStatus = screen === 'inflight' ? 'flying' as const : 'online' as const
+  useOnlinePresence(
+    user?.id,
+    user?.user_metadata?.username,
+    presenceStatus,
+    setPresenceMap,
+  )
 
   // Migrate localStorage trips on first login
   useEffect(() => {
@@ -69,7 +79,7 @@ export default function App() {
       <AnimatePresence mode="wait">
         {screen === 'home' && (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="h-full">
-            <HomeScreen onFlightConfigured={handleFlightConfigured} />
+            <HomeScreen onFlightConfigured={handleFlightConfigured} presenceMap={presenceMap} />
           </motion.div>
         )}
         {screen === 'boarding' && config && (

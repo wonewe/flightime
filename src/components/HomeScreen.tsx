@@ -1,19 +1,22 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plane, History, X, Trash2, Search, ArrowLeft, ChevronRight, ChevronLeft, LogOut } from 'lucide-react'
+import { Plane, History, Users, X, Trash2, Search, ArrowLeft, ChevronRight, ChevronLeft, LogOut } from 'lucide-react'
 import createGlobe from 'cobe'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 import type { Airport, Aircraft, FlightConfig, TripRecord } from '../types'
 import { AIRPORTS, AIRCRAFT, SEAT_OPTIONS } from '../constants'
-import { haversineDistance, greatCirclePoints } from '../utils/geo'
+import { haversineDistance } from '../utils/geo'
 import { loadTripsSupabase, deleteTripsSupabase } from '../utils/tripHistorySupabase'
 import { useAuth } from '../contexts/AuthContext'
+import { HistoryMap } from './HistoryMap'
+import { FriendsPanel } from './FriendsPanel'
+import { useFriends } from '../hooks/useFriends'
+import type { PresenceState } from '../types'
 
 type Phase = 'idle' | 'selectFrom' | 'selectTo' | 'selectAircraft' | 'selectSeat'
 
 interface Props {
   onFlightConfigured: (config: FlightConfig) => void
+  presenceMap: Map<string, PresenceState>
 }
 
 const ease = [0.16, 1, 0.3, 1] as const
@@ -24,131 +27,17 @@ const slideVariants = {
   exit: (dir: number) => ({ opacity: 0, x: dir > 0 ? -60 : 60 }),
 }
 
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
-
-function HistoryMap({ routeGroups, selectedRoute }: {
-  routeGroups: { key: string; from: Airport; to: Airport; records: TripRecord[] }[]
-  selectedRoute: string | null
-}) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<L.Map | null>(null)
-  const linesRef = useRef<Map<string, L.Polyline>>(new Map())
-
-  useEffect(() => {
-    if (!containerRef.current) return
-    if (mapRef.current) { mapRef.current.remove(); mapRef.current = null }
-
-    const map = L.map(containerRef.current, {
-      center: [35, 130],
-      zoom: 3,
-      zoomControl: false,
-      attributionControl: false,
-      dragging: true,
-      scrollWheelZoom: true,
-      doubleClickZoom: true,
-      touchZoom: true,
-      minZoom: 2,
-      maxZoom: 8,
-    })
-
-    L.tileLayer(TILE_URL, { subdomains: 'abcd', maxZoom: 19 }).addTo(map)
-
-    const allBounds: L.LatLngTuple[] = []
-    const seen = new Set<string>()
-    const lines = new Map<string, L.Polyline>()
-
-    routeGroups.forEach(rg => {
-      const pts = greatCirclePoints(rg.from, rg.to, 60)
-      const ll = pts.map(p => [p.lat, p.lng] as L.LatLngTuple)
-      allBounds.push([rg.from.lat, rg.from.lng], [rg.to.lat, rg.to.lng])
-
-      const line = L.polyline(ll, {
-        color: '#60a5fa',
-        weight: 1.5,
-        opacity: 0.3,
-        dashArray: '4,8',
-      }).addTo(map)
-      lines.set(rg.key, line)
-
-      for (const apt of [rg.from, rg.to]) {
-        if (!seen.has(apt.code)) {
-          seen.add(apt.code)
-          L.marker([apt.lat, apt.lng], {
-            icon: L.divIcon({
-              className: '',
-              iconSize: [60, 32],
-              iconAnchor: [30, 8],
-              html: `<div style="display:flex;flex-direction:column;align-items:center">
-                <div style="width:8px;height:8px;background:#60a5fa;border-radius:50%;box-shadow:0 0 12px rgba(96,165,250,0.5);border:1.5px solid rgba(255,255,255,0.15)"></div>
-                <div style="margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.12em;color:rgba(255,255,255,0.45);text-shadow:0 0 8px rgba(0,0,0,0.9);white-space:nowrap">${apt.code}</div>
-              </div>`,
-            }),
-            interactive: false,
-          }).addTo(map)
-        }
-      }
-    })
-
-    linesRef.current = lines
-
-    if (allBounds.length > 0) {
-      map.fitBounds(allBounds as L.LatLngBoundsExpression, { padding: [40, 40], maxZoom: 5 })
-    }
-
-    mapRef.current = map
-    return () => { map.remove(); mapRef.current = null }
-  }, [routeGroups])
-
-  useEffect(() => {
-    linesRef.current.forEach((line, key) => {
-      if (key === selectedRoute) {
-        line.setStyle({ opacity: 0.8, weight: 3, dashArray: '' })
-        line.bringToFront()
-      } else {
-        line.setStyle({
-          opacity: selectedRoute ? 0.1 : 0.3,
-          weight: 1.5,
-          dashArray: '4,8',
-        })
-      }
-    })
-
-    if (selectedRoute && mapRef.current) {
-      const rg = routeGroups.find(r => r.key === selectedRoute)
-      if (rg) {
-        const pts = greatCirclePoints(rg.from, rg.to, 60)
-        const ll = pts.map(p => [p.lat, p.lng] as L.LatLngTuple)
-        mapRef.current.flyToBounds(ll as L.LatLngBoundsExpression, {
-          padding: [60, 60],
-          duration: 0.8,
-          maxZoom: 6,
-        })
-      }
-    } else if (!selectedRoute && mapRef.current && routeGroups.length > 0) {
-      const allBounds: L.LatLngTuple[] = []
-      routeGroups.forEach(rg => {
-        allBounds.push([rg.from.lat, rg.from.lng], [rg.to.lat, rg.to.lng])
-      })
-      mapRef.current.flyToBounds(allBounds as L.LatLngBoundsExpression, {
-        padding: [40, 40],
-        maxZoom: 5,
-        duration: 0.8,
-      })
-    }
-  }, [selectedRoute, routeGroups])
-
-  return <div ref={containerRef} className="w-full h-full" />
-}
-
 function generateFlightNumber(): string {
   const num = Math.floor(Math.random() * 9000) + 1000
   return `FT-${num}`
 }
 
-export function HomeScreen({ onFlightConfigured }: Props) {
+export function HomeScreen({ onFlightConfigured, presenceMap }: Props) {
   const { signOut, user } = useAuth()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [showHistory, setShowHistory] = useState(false)
+  const [showFriends, setShowFriends] = useState(false)
+  const { pendingReceived } = useFriends(user?.id)
   const [trips, setTrips] = useState<TripRecord[]>([])
   const [expandedRoute, setExpandedRoute] = useState<string | null>(null)
   const [phase, setPhase] = useState<Phase>('idle')
@@ -436,6 +325,19 @@ export function HomeScreen({ onFlightConfigured }: Props) {
                 >
                   <Plane className="w-3.5 h-3.5" />
                   새 여행 떠나기
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowFriends(true)}
+                  className="w-full py-3 rounded-xl bg-transparent border border-white/[0.04] text-white/30 text-[12px] tracking-wide hover:bg-white/[0.04] hover:text-white/50 transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  친구
+                  {pendingReceived.length > 0 && (
+                    <span className="text-[9px] font-mono text-sky-400 bg-sky-400/15 rounded-full px-1.5 py-0.5 ml-1">{pendingReceived.length}</span>
+                  )}
                 </motion.button>
 
                 <motion.button
@@ -800,6 +702,11 @@ export function HomeScreen({ onFlightConfigured }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Friends Panel */}
+      {showFriends && (
+        <FriendsPanel onClose={() => setShowFriends(false)} presenceMap={presenceMap} />
+      )}
     </div>
   )
 }

@@ -5,6 +5,10 @@ import { FlightMap } from './FlightMap'
 import { useTimer } from '../hooks/useTimer'
 import { useAmbientNoise } from '../hooks/useAmbientNoise'
 import { PHASE_THRESHOLDS } from '../constants'
+import { upsertActiveFlight, removeActiveFlight } from '../lib/activeFlights'
+import { useAuth } from '../contexts/AuthContext'
+import { useFriends } from '../hooks/useFriends'
+import { useFriendFlights } from '../hooks/useFriendFlights'
 import type { FlightConfig, FlightPhase } from '../types'
 
 interface Props {
@@ -38,6 +42,9 @@ function calcSpd(prog: number, p: FlightPhase): number {
 }
 
 export function FlightView({ config, durationMinutes, onLanded, onExit }: Props) {
+  const { user } = useAuth()
+  const { friendUserIds, acceptedFriends, getFriendUserId } = useFriends(user?.id)
+  const { flights: friendFlightsMap } = useFriendFlights(friendUserIds)
   const timer = useTimer(durationMinutes)
   const noise = useAmbientNoise(0.5)
   const noiseStarted = useRef(false)
@@ -78,6 +85,32 @@ export function FlightView({ config, durationMinutes, onLanded, onExit }: Props)
     return () => { noise.stop(); noiseStarted.current = false }
   }, []) // eslint-disable-line
 
+  // Upsert active flight every 5 seconds for friend tracking
+  useEffect(() => {
+    if (!user) return
+    // Initial upsert
+    upsertActiveFlight(user.id, config, durationMinutes, timer.progress, timer.phase)
+
+    const interval = setInterval(() => {
+      if (timer.phase !== 'landed') {
+        upsertActiveFlight(user.id, config, durationMinutes, timer.progress, timer.phase)
+      }
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [user, config, durationMinutes]) // eslint-disable-line
+
+  // Remove active flight on landed or unmount
+  useEffect(() => {
+    if (timer.phase === 'landed' && user) {
+      removeActiveFlight(user.id)
+    }
+  }, [timer.phase, user])
+
+  useEffect(() => {
+    return () => { if (user) removeActiveFlight(user.id) }
+  }, []) // eslint-disable-line
+
   const toggleMute = () => {
     if (noise.volume > 0) {
       prevVolRef.current = noise.volume
@@ -96,7 +129,12 @@ export function FlightView({ config, durationMinutes, onLanded, onExit }: Props)
 
   return (
     <div className="h-full relative overflow-hidden">
-      <FlightMap from={from} to={to} progress={timer.progress} />
+      <FlightMap from={from} to={to} progress={timer.progress} friendFlights={
+        Array.from(friendFlightsMap.values()).map(f => {
+          const friendship = acceptedFriends.find(af => getFriendUserId(af) === f.user_id)
+          return { ...f, username: friendship?.profile.username ?? '?' }
+        })
+      } />
 
       {hud.showRoute && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.6 }}

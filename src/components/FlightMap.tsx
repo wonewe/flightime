@@ -2,12 +2,17 @@ import { useEffect, useRef, useMemo } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { greatCirclePoints, interpolateGreatCircle, bearing } from '../utils/geo'
-import type { Airport } from '../types'
+import type { Airport, ActiveFlight } from '../types'
+
+interface FriendFlight extends ActiveFlight {
+  username: string
+}
 
 interface Props {
   from: Airport
   to: Airport
   progress: number
+  friendFlights?: FriendFlight[]
 }
 
 const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
@@ -21,6 +26,18 @@ const createPlaneIcon = (rot: number) => L.divIcon({
   html: `<div style="transform:rotate(${rot}deg);transition:transform .3s ease">${PLANE_SVG}</div>`,
 })
 
+const FRIEND_PLANE_SVG = `<svg width="24" height="24" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g filter="url(#fg2)"><path d="M18 3C17.2 3 16.5 4.5 16.5 6L16.5 13L6 18.5C5.4 18.8 5 19.3 5 19.8V20.5C5 20.9 5.3 21.1 5.7 21L16.5 17.5V26.5L13 29C12.7 29.2 12.5 29.5 12.5 29.9V30.5C12.5 30.8 12.7 31 13 30.9L18 29L23 30.9C23.3 31 23.5 30.8 23.5 30.5V29.9C23.5 29.5 23.3 29.2 23 29L19.5 26.5V17.5L30.3 21C30.7 21.1 31 20.9 31 20.5V19.8C31 19.3 30.6 18.8 30 18.5L19.5 13V6C19.5 4.5 18.8 3 18 3Z" fill="#34d399"/></g>
+  <defs><filter id="fg2" x="-4" y="-4" width="44" height="44" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="1" result="b"/><feFlood flood-color="#34d399" flood-opacity="0.4" result="c"/><feComposite in="c" in2="b" operator="in" result="s"/><feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>`
+
+const createFriendPlaneIcon = (rot: number, username: string) => L.divIcon({
+  className: '', iconSize: [24, 40], iconAnchor: [12, 12],
+  html: `<div style="display:flex;flex-direction:column;align-items:center">
+    <div style="transform:rotate(${rot}deg);transition:transform .3s ease">${FRIEND_PLANE_SVG}</div>
+    <div style="margin-top:2px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;color:#34d399;text-shadow:0 0 8px rgba(0,0,0,0.9);white-space:nowrap;letter-spacing:.08em">${username}</div>
+  </div>`,
+})
+
 const createAirportIcon = (code: string, isOrigin: boolean) => {
   const c = isOrigin ? '#60a5fa' : '#f59e0b'
   return L.divIcon({
@@ -31,11 +48,13 @@ const createAirportIcon = (code: string, isOrigin: boolean) => {
   })
 }
 
-export function FlightMap({ from, to, progress }: Props) {
+export function FlightMap({ from, to, progress, friendFlights = [] }: Props) {
   const mapRef = useRef<L.Map | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const planeRef = useRef<L.Marker | null>(null)
   const trailRef = useRef<L.Polyline | null>(null)
+  const friendMarkersRef = useRef<Map<string, L.Marker>>(new Map())
+  const friendLinesRef = useRef<Map<string, L.Polyline>>(new Map())
 
   const pts = useMemo(() => greatCirclePoints(from, to, 100), [from, to])
 
@@ -70,6 +89,52 @@ export function FlightMap({ from, to, progress }: Props) {
     trail.push([cur.lat, cur.lng])
     trailRef.current.setLatLngs(trail)
   }, [progress, from, to, pts])
+
+  // Render friend flights
+  useEffect(() => {
+    if (!mapRef.current) return
+    const map = mapRef.current
+    const currentIds = new Set(friendFlights.map(f => f.user_id))
+
+    // Remove stale markers/lines
+    friendMarkersRef.current.forEach((marker, id) => {
+      if (!currentIds.has(id)) { marker.remove(); friendMarkersRef.current.delete(id) }
+    })
+    friendLinesRef.current.forEach((line, id) => {
+      if (!currentIds.has(id)) { line.remove(); friendLinesRef.current.delete(id) }
+    })
+
+    // Add/update friend markers
+    friendFlights.forEach(ff => {
+      const ffFrom = { lat: ff.from_lat, lng: ff.from_lng }
+      const ffTo = { lat: ff.to_lat, lng: ff.to_lng }
+      const cur = interpolateGreatCircle(ffFrom, ffTo, ff.progress)
+      const nxt = interpolateGreatCircle(ffFrom, ffTo, Math.min(ff.progress + 0.02, 1))
+      const rot = bearing(cur, nxt)
+
+      // Route line
+      if (!friendLinesRef.current.has(ff.user_id)) {
+        const pts = greatCirclePoints(ffFrom, ffTo, 60)
+        const ll = pts.map(p => [p.lat, p.lng] as L.LatLngTuple)
+        const line = L.polyline(ll, { color: '#34d399', weight: 1, opacity: 0.2, dashArray: '4,6' }).addTo(map)
+        friendLinesRef.current.set(ff.user_id, line)
+      }
+
+      // Plane marker
+      const existing = friendMarkersRef.current.get(ff.user_id)
+      if (existing) {
+        existing.setLatLng([cur.lat, cur.lng])
+        existing.setIcon(createFriendPlaneIcon(rot, ff.username))
+      } else {
+        const marker = L.marker([cur.lat, cur.lng], {
+          icon: createFriendPlaneIcon(rot, ff.username),
+          zIndexOffset: 900,
+          interactive: false,
+        }).addTo(map)
+        friendMarkersRef.current.set(ff.user_id, marker)
+      }
+    })
+  }, [friendFlights])
 
   return (
     <div className="absolute inset-0">

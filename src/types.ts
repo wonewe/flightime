@@ -51,3 +51,51 @@ export interface TripRow {
   completed_at: string
   created_at: string
 }
+
+// Friends feature types
+
+export interface Profile {
+  id: string
+  username: string
+  created_at: string
+}
+
+export type FriendshipStatus = 'pending' | 'accepted' | 'rejected'
+
+export interface Friendship {
+  id: string
+  user_id: string
+  friend_id: string
+  status: FriendshipStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface FriendWithProfile extends Friendship {
+  profile: Profile
+}
+
+export interface ActiveFlight {
+  user_id: string
+  from_code: string
+  to_code: string
+  from_city_ko: string
+  to_city_ko: string
+  from_lat: number
+  from_lng: number
+  to_lat: number
+  to_lng: number
+  flight_number: string
+  aircraft_name: string
+  duration_minutes: number
+  progress: number
+  phase: string
+  started_at: string
+  updated_at: string
+}
+
+export interface PresenceState {
+  status: 'online' | 'flying'
+  userId: string
+  username: string
+}
