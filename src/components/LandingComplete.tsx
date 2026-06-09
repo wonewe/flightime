@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Plane, Check } from 'lucide-react'
 import type { FlightConfig } from '../types'
@@ -7,6 +7,7 @@ interface Props {
   config: FlightConfig
   durationMinutes: number
   onReset: () => void
+  earnedMiles: number
 }
 
 function Barcode() {
@@ -21,7 +22,26 @@ function Barcode() {
   )
 }
 
-export function LandingComplete({ config, durationMinutes, onReset }: Props) {
+function MilesCountUp({ target }: { target: number }) {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    const duration = 1200
+    const start = performance.now()
+    let raf: number
+    function tick(now: number) {
+      const elapsed = now - start
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setCount(Math.round(eased * target))
+      if (progress < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target])
+  return <span>+{count.toLocaleString()}</span>
+}
+
+export function LandingComplete({ config, durationMinutes, onReset, earnedMiles }: Props) {
   const { from, to, distanceKm, flightNumber } = config
   const fmt = (m: number) => { const h = Math.floor(m/60), r = m%60; return h > 0 ? (r > 0 ? `${h}h ${r}m` : `${h}h`) : `${m}m` }
   const landed = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
@@ -84,6 +104,17 @@ export function LandingComplete({ config, durationMinutes, onReset }: Props) {
               <div><p className="text-[8px] font-mono text-white/15 tracking-wider">ARRIVED</p><p className="text-[11px] font-mono text-white/50 mt-1">{landed}</p></div>
               <div><p className="text-[8px] font-mono text-white/15 tracking-wider">DATE</p><p className="text-[11px] font-mono text-white/50 mt-1">{date}</p></div>
             </div>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="flex items-center justify-center gap-1.5 mb-5 py-2 rounded-lg bg-sky-400/[0.06] border border-sky-400/[0.10]"
+            >
+              <span className="text-[14px] font-mono font-bold text-sky-400/80 tracking-wider">
+                <MilesCountUp target={earnedMiles} />
+              </span>
+              <span className="text-[10px] font-mono text-sky-400/50 tracking-[0.2em]">MILES EARNED</span>
+            </motion.div>
             <div className="flex flex-col items-center mb-5">
               <Barcode />
               <span className="text-[8px] font-mono text-white/10 tracking-wider mt-2">FLT{flightNumber.replace('-','')}</span>

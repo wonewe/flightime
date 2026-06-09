@@ -8,6 +8,8 @@ import { FlightView } from './components/FlightView'
 import { LandingComplete } from './components/LandingComplete'
 import { saveTripSupabase, migrateLocalTrips } from './utils/tripHistorySupabase'
 import { useOnlinePresence } from './hooks/useOnlinePresence'
+import { useMileage } from './hooks/useMileage'
+import { MILEAGE_PER_MINUTE } from './constants/unlockCosts'
 import type { FlightConfig, PresenceState } from './types'
 
 type Screen = 'home' | 'boarding' | 'inflight' | 'landed'
@@ -20,6 +22,8 @@ export default function App() {
   const [todos, setTodos] = useState<string[]>([])
   const migrated = useRef(false)
   const [presenceMap, setPresenceMap] = useState<Map<string, PresenceState>>(new Map())
+
+  const mileage = useMileage(user?.id)
 
   const presenceStatus = screen === 'inflight' ? 'flying' as const : 'online' as const
   useOnlinePresence(
@@ -51,9 +55,10 @@ export default function App() {
   const handleLanded = useCallback(() => {
     if (config && user) {
       saveTripSupabase(user.id, config, durationMinutes)
+      mileage.earn(durationMinutes * MILEAGE_PER_MINUTE)
     }
     setScreen('landed')
-  }, [config, durationMinutes, user])
+  }, [config, durationMinutes, user, mileage])
 
   const handleGoHome = useCallback(() => {
     setConfig(null)
@@ -81,7 +86,7 @@ export default function App() {
       <AnimatePresence mode="wait">
         {screen === 'home' && (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="h-full">
-            <HomeScreen onFlightConfigured={handleFlightConfigured} presenceMap={presenceMap} />
+            <HomeScreen onFlightConfigured={handleFlightConfigured} presenceMap={presenceMap} mileageBalance={mileage.balance} unlockedAirports={mileage.unlockedAirports} unlockedAircraft={mileage.unlockedAircraft} onUnlock={mileage.unlock} />
           </motion.div>
         )}
         {screen === 'boarding' && config && (
@@ -96,7 +101,7 @@ export default function App() {
         )}
         {screen === 'landed' && config && (
           <motion.div key="landed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }} className="h-full">
-            <LandingComplete config={config} durationMinutes={durationMinutes} onReset={handleGoHome} />
+            <LandingComplete config={config} durationMinutes={durationMinutes} onReset={handleGoHome} earnedMiles={durationMinutes * MILEAGE_PER_MINUTE} />
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, UserPlus, Check, XIcon, UserMinus, Users } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useFriends } from '../hooks/useFriends'
 import { useFriendFlights } from '../hooks/useFriendFlights'
 import { searchProfiles } from '../lib/friendships'
+import { loadFriendMileages } from '../utils/mileageSupabase'
 import { FriendFlightCard } from './FriendFlightCard'
 import { FriendTripHistory } from './FriendTripHistory'
 import type { Profile, FriendWithProfile, ActiveFlight } from '../types'
@@ -25,6 +26,12 @@ export function FriendsPanel({ onClose, presenceMap }: Props) {
   const [searching, setSearching] = useState(false)
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null)
   const [selectedFriendship, setSelectedFriendship] = useState<FriendWithProfile | null>(null)
+  const [friendMileages, setFriendMileages] = useState<Map<string, { balance: number; totalEarned: number }>>(new Map())
+
+  useEffect(() => {
+    if (friendUserIds.length === 0) return
+    loadFriendMileages(friendUserIds).then(setFriendMileages)
+  }, [friendUserIds.join(',')])
 
   const handleSearch = useCallback(async (q: string) => {
     setSearchQuery(q)
@@ -202,9 +209,16 @@ export function FriendsPanel({ onClose, presenceMap }: Props) {
                       <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${statusDotClass(status)}`} />
 
                       <div className="flex-1 text-left">
-                        <span className={`text-[12px] font-mono tracking-wide ${isSelected ? 'text-white/90' : 'text-white/60'}`}>
-                          {f.profile.username}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[12px] font-mono tracking-wide ${isSelected ? 'text-white/90' : 'text-white/60'}`}>
+                            {f.profile.username}
+                          </span>
+                          {friendMileages.has(fid) && (
+                            <span className="text-[9px] font-mono text-sky-400/50">
+                              {friendMileages.get(fid)!.balance.toLocaleString()}M
+                            </span>
+                          )}
+                        </div>
                         {status === 'flying' && flights.has(fid) && (
                           <p className="text-[9px] text-sky-400/70 mt-0.5">
                             {flights.get(fid)!.from_code} → {flights.get(fid)!.to_code}
@@ -270,6 +284,7 @@ export function FriendsPanel({ onClose, presenceMap }: Props) {
                   <FriendTripHistory
                     friendId={selectedFriendId}
                     username={selectedFriendship.profile.username}
+                    mileage={friendMileages.get(selectedFriendId)}
                   />
                 </motion.div>
               )

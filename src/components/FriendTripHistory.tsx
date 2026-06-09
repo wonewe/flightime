@@ -9,6 +9,7 @@ import type { TripRecord, TripRow } from '../types'
 interface Props {
   friendId: string
   username: string
+  mileage?: { balance: number; totalEarned: number }
 }
 
 function rowToRecord(row: TripRow): TripRecord {
@@ -22,7 +23,7 @@ function rowToRecord(row: TripRow): TripRecord {
 
 const ease = [0.16, 1, 0.3, 1] as const
 
-export function FriendTripHistory({ friendId, username }: Props) {
+export function FriendTripHistory({ friendId, username, mileage }: Props) {
   const [trips, setTrips] = useState<TripRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedRoute, setExpandedRoute] = useState<string | null>(null)
@@ -125,6 +126,17 @@ export function FriendTripHistory({ friendId, username }: Props) {
               <p className="text-[14px] font-mono font-bold text-white/80">{fmtTotal(totalStats.totalMin)}</p>
             </div>
           </div>
+          {mileage && (
+            <div className="mt-3 pt-2.5 border-t border-white/[0.06]">
+              <p className="text-[8px] font-mono text-white/30 tracking-[0.15em]">MILEAGE</p>
+              <p className="text-[14px] font-mono font-bold text-sky-400/80 mt-0.5">
+                {mileage.balance.toLocaleString()}<span className="text-[9px] text-sky-400/50 ml-1">M</span>
+              </p>
+              <p className="text-[8px] font-mono text-white/25 mt-0.5">
+                총 {mileage.totalEarned.toLocaleString()}M 획득
+              </p>
+            </div>
+          )}
         </motion.div>
 
         {/* Route cards - scrollable */}
