@@ -71,6 +71,7 @@ export function FlightMap({ from, to, progress, friendFlights = [] }: Props) {
   const lastIconRotRef = useRef(0)
   const cumulativeRotRef = useRef(0)
   const lastTileSyncRef = useRef(0)
+  const lastTrailUpdateRef = useRef(0)
 
   const [viewMode, setViewMode] = useState<ViewMode>('normal')
 
@@ -106,16 +107,22 @@ export function FlightMap({ from, to, progress, friendFlights = [] }: Props) {
     const nxt = interpolateGreatCircle(from, to, Math.min(progress + 0.02, 1))
     const rot = bearing(cur, nxt)
 
-    // Marker + trail (lightweight Leaflet ops, no jitter)
+    // Marker position (just a CSS transform change — cheap)
     planeRef.current.setLatLng([cur.lat, cur.lng])
     if (Math.abs(rot - lastIconRotRef.current) > 0.5) {
       planeRef.current.setIcon(createPlaneIcon(rot))
       lastIconRotRef.current = rot
     }
-    const idx = Math.floor(progress * pts.length)
-    const trail = pts.slice(0, idx + 1).map(p => [p.lat, p.lng] as L.LatLngTuple)
-    trail.push([cur.lat, cur.lng])
-    trailRef.current.setLatLngs(trail)
+
+    // Trail update throttled to ~5fps (SVG path rebuild is expensive at 60fps)
+    const now = performance.now()
+    if (now - lastTrailUpdateRef.current > 200) {
+      lastTrailUpdateRef.current = now
+      const idx = Math.floor(progress * pts.length)
+      const trail = pts.slice(0, idx + 1).map(p => [p.lat, p.lng] as L.LatLngTuple)
+      trail.push([cur.lat, cur.lng])
+      trailRef.current.setLatLngs(trail)
+    }
 
     // ── Heading mode: CSS-only camera ──
     // Zero Leaflet camera calls → zero jitter.
@@ -153,7 +160,7 @@ export function FlightMap({ from, to, progress, friendFlights = [] }: Props) {
 
       if (next === 'heading') {
         // Expand wrapper for rotation coverage, center on plane
-        wrap.style.inset = '-50%'
+        wrap.style.inset = '-75%'
         requestAnimationFrame(() => {
           map.invalidateSize()
           const cur = interpolateGreatCircle(from, to, progress)
