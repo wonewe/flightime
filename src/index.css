@@ -102,6 +102,28 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Volume slider */
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, 0.7);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(96, 165, 250, 0.4);
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, 0.7);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(96, 165, 250, 0.4);
+}
+
 /* Globe canvas fade */
 .globe-canvas {
   opacity: 0;

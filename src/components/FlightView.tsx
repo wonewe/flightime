@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Settings, Pause, Play } from 'lucide-react'
+import { X, Settings, Pause, Play, Volume2, VolumeX } from 'lucide-react'
 import { FlightMap } from './FlightMap'
 import { useTimer } from '../hooks/useTimer'
+import { useAmbientNoise } from '../hooks/useAmbientNoise'
 import { PHASE_THRESHOLDS } from '../constants'
 import type { FlightConfig, FlightPhase } from '../types'
 
@@ -38,12 +39,53 @@ function calcSpd(prog: number, p: FlightPhase): number {
 
 export function FlightView({ config, durationMinutes, onLanded, onExit }: Props) {
   const timer = useTimer(durationMinutes)
+  const noise = useAmbientNoise(0.5)
+  const noiseStarted = useRef(false)
   const { from, to, flightNumber, distanceKm } = config
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [volumeOpen, setVolumeOpen] = useState(false)
   const [hud, setHud] = useState<HudSettings>({ showRoute: true, showTimer: true, showPhase: true, showStats: true })
+  const soundOn = noise.volume > 0
+  const prevVolRef = useRef(0.5)
 
   useEffect(() => { timer.start(); return () => timer.stop() }, []) // eslint-disable-line
   useEffect(() => { if (timer.phase === 'landed') { const t = setTimeout(onLanded, 2000); return () => clearTimeout(t) } }, [timer.phase, onLanded])
+
+  // Start/stop noise with timer
+  useEffect(() => {
+    if (timer.isRunning && soundOn) {
+      if (!noiseStarted.current) {
+        noise.start()
+        noiseStarted.current = true
+      } else {
+        noise.resume()
+      }
+    } else if (!timer.isRunning || !soundOn) {
+      noise.pause()
+    }
+  }, [timer.isRunning, soundOn]) // eslint-disable-line
+
+  // Stop noise on landed or unmount
+  useEffect(() => {
+    if (timer.phase === 'landed') {
+      noise.stop()
+      noiseStarted.current = false
+    }
+  }, [timer.phase]) // eslint-disable-line
+
+  // Cleanup noise on exit
+  useEffect(() => {
+    return () => { noise.stop(); noiseStarted.current = false }
+  }, []) // eslint-disable-line
+
+  const toggleMute = () => {
+    if (noise.volume > 0) {
+      prevVolRef.current = noise.volume
+      noise.setVolume(0)
+    } else {
+      noise.setVolume(prevVolRef.current || 0.5)
+    }
+  }
 
   const remaining = distanceKm - Math.round(distanceKm * timer.progress)
   const alt = phaseAlt(timer.phase, timer.progress)
@@ -83,13 +125,53 @@ export function FlightView({ config, durationMinutes, onLanded, onExit }: Props)
             ? <Pause className="w-3.5 h-3.5 text-white/25" />
             : <Play className="w-3.5 h-3.5 text-white/25" />}
         </button>
-        <button onClick={() => setSettingsOpen(v => !v)} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+        <div className="relative">
+          <button
+            onClick={() => { setVolumeOpen(v => !v); setSettingsOpen(false) }}
+            onContextMenu={e => { e.preventDefault(); toggleMute() }}
+            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+            title="볼륨 조절 (우클릭: 음소거)"
+          >
+            {soundOn
+              ? <Volume2 className="w-3.5 h-3.5 text-white/25" />
+              : <VolumeX className="w-3.5 h-3.5 text-white/25" />}
+          </button>
+        </div>
+        <button onClick={() => { setSettingsOpen(v => !v); setVolumeOpen(false) }} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
           <Settings className="w-3.5 h-3.5 text-white/25" />
         </button>
         <button onClick={() => { timer.stop(); onExit() }} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
           <X className="w-3.5 h-3.5 text-white/25" />
         </button>
       </div>
+
+      <AnimatePresence>
+        {volumeOpen && (
+          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }}
+            className="absolute top-14 right-4 z-[1001] glass-card rounded-lg p-3 min-w-[160px]">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[9px] font-mono text-white/30 tracking-wider">VOLUME</p>
+              <button onClick={toggleMute} className="text-[9px] font-mono text-white/30 hover:text-white/50 transition-colors">
+                {soundOn ? '음소거' : '해제'}
+              </button>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <VolumeX className="w-3 h-3 text-white/20 flex-shrink-0" />
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={noise.volume}
+                onChange={e => noise.setVolume(parseFloat(e.target.value))}
+                className="volume-slider flex-1 h-1 appearance-none bg-white/10 rounded-full outline-none cursor-pointer"
+              />
+              <Volume2 className="w-3 h-3 text-white/20 flex-shrink-0" />
+            </div>
+            <p className="text-center text-[10px] font-mono text-white/25 mt-1.5">{Math.round(noise.volume * 100)}%</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {settingsOpen && (
