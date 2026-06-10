@@ -17,6 +17,8 @@ export function useOnlinePresence(
   const channelRef = useRef<RealtimeChannel | null>(null)
   const onSyncRef = useRef(onSync)
   onSyncRef.current = onSync
+  const statusRef = useRef(status)
+  statusRef.current = status
 
   const buildMap = useCallback((channel: RealtimeChannel) => {
     const state = channel.presenceState<PresenceEntry>()
@@ -38,6 +40,7 @@ export function useOnlinePresence(
     })
   }, [userId, username])
 
+  // Channel lifecycle — only depends on identity, NOT status
   useEffect(() => {
     if (!userId || !username) return
 
@@ -58,7 +61,7 @@ export function useOnlinePresence(
       .subscribe((subscribeStatus, err) => {
         if (subscribeStatus === 'SUBSCRIBED') {
           channel.track({
-            status,
+            status: statusRef.current,
             userId,
             username,
           } satisfies PresenceEntry)
@@ -74,9 +77,9 @@ export function useOnlinePresence(
       supabase.removeChannel(channel)
       channelRef.current = null
     }
-  }, [userId, username, status, buildMap])
+  }, [userId, username, buildMap])
 
-  // Update status when it changes (e.g. online -> flying)
+  // Update tracked status when it changes (e.g. online -> flying)
   useEffect(() => {
     updateStatus(status)
   }, [status, updateStatus])
