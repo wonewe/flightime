@@ -15,6 +15,19 @@ export function useOnlinePresence(
   onSync?: (presences: Map<string, PresenceEntry>) => void,
 ) {
   const channelRef = useRef<RealtimeChannel | null>(null)
+  const onSyncRef = useRef(onSync)
+  onSyncRef.current = onSync
+
+  const buildMap = useCallback((channel: RealtimeChannel) => {
+    const state = channel.presenceState<PresenceEntry>()
+    const map = new Map<string, PresenceEntry>()
+    for (const [key, entries] of Object.entries(state)) {
+      if (entries && entries.length > 0) {
+        map.set(key, entries[0] as PresenceEntry)
+      }
+    }
+    onSyncRef.current?.(map)
+  }, [])
 
   const updateStatus = useCallback((newStatus: 'online' | 'flying') => {
     if (!channelRef.current || !userId || !username) return
@@ -34,22 +47,23 @@ export function useOnlinePresence(
 
     channel
       .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState<PresenceEntry>()
-        const map = new Map<string, PresenceEntry>()
-        for (const [key, entries] of Object.entries(state)) {
-          if (entries && entries.length > 0) {
-            map.set(key, entries[0] as PresenceEntry)
-          }
-        }
-        onSync?.(map)
+        buildMap(channel)
       })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({
-            status: 'online',
+      .on('presence', { event: 'join' }, () => {
+        buildMap(channel)
+      })
+      .on('presence', { event: 'leave' }, () => {
+        buildMap(channel)
+      })
+      .subscribe((subscribeStatus, err) => {
+        if (subscribeStatus === 'SUBSCRIBED') {
+          channel.track({
+            status,
             userId,
             username,
           } satisfies PresenceEntry)
+        } else if (err) {
+          console.error('Presence subscribe error:', subscribeStatus, err.message)
         }
       })
 
@@ -60,7 +74,7 @@ export function useOnlinePresence(
       supabase.removeChannel(channel)
       channelRef.current = null
     }
-  }, [userId, username]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, username, status, buildMap])
 
   // Update status when it changes (e.g. online -> flying)
   useEffect(() => {
