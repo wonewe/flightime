@@ -53,11 +53,17 @@ export function FriendsPanel({ onClose, presenceMap }: Props) {
     setSelectedFriendship(friendship)
   }, [userId])
 
-  const isFriendOrPending = useCallback((profileId: string) => {
-    return [...acceptedFriends, ...pendingSent, ...pendingReceived].some(
-      f => f.user_id === profileId || f.friend_id === profileId
-    )
+  const getSearchStatus = useCallback((profileId: string): 'none' | 'sent' | 'received' | 'friend' => {
+    if (acceptedFriends.some(f => f.user_id === profileId || f.friend_id === profileId)) return 'friend'
+    if (pendingSent.some(f => f.friend_id === profileId)) return 'sent'
+    const received = pendingReceived.find(f => f.user_id === profileId)
+    if (received) return 'received'
+    return 'none'
   }, [acceptedFriends, pendingSent, pendingReceived])
+
+  const getReceivedFriendshipId = useCallback((profileId: string): string | undefined => {
+    return pendingReceived.find(f => f.user_id === profileId)?.id
+  }, [pendingReceived])
 
   const getPresenceStatus = useCallback((uid: string): 'online' | 'flying' | 'offline' => {
     if (flights.has(uid)) return 'flying'
@@ -126,22 +132,35 @@ export function FriendsPanel({ onClose, presenceMap }: Props) {
                   ) : searchResults.length === 0 ? (
                     <div className="px-3 py-3 text-[11px] text-white/40 text-center">결과 없음</div>
                   ) : (
-                    searchResults.map(profile => (
-                      <div key={profile.id} className="flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.06]">
-                        <span className="text-[12px] font-mono text-white/70">{profile.username}</span>
-                        {isFriendOrPending(profile.id) ? (
-                          <span className="text-[10px] text-white/30">요청됨</span>
-                        ) : (
-                          <button
-                            onClick={() => { send(profile.id); setSearchQuery(''); setSearchResults([]) }}
-                            className="flex items-center gap-1 text-[10px] text-sky-400 hover:text-sky-300 transition-colors"
-                          >
-                            <UserPlus className="w-3 h-3" />
-                            요청
-                          </button>
-                        )}
-                      </div>
-                    ))
+                    searchResults.map(profile => {
+                      const status = getSearchStatus(profile.id)
+                      return (
+                        <div key={profile.id} className="flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.06]">
+                          <span className="text-[12px] font-mono text-white/70">{profile.username}</span>
+                          {status === 'friend' ? (
+                            <span className="text-[10px] text-white/30">친구</span>
+                          ) : status === 'sent' ? (
+                            <span className="text-[10px] text-white/30">요청됨</span>
+                          ) : status === 'received' ? (
+                            <button
+                              onClick={() => { const fid = getReceivedFriendshipId(profile.id); if (fid) accept(fid) }}
+                              className="flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 transition-colors"
+                            >
+                              <Check className="w-3 h-3" />
+                              수락
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => { send(profile.id); setSearchQuery(''); setSearchResults([]) }}
+                              className="flex items-center gap-1 text-[10px] text-sky-400 hover:text-sky-300 transition-colors"
+                            >
+                              <UserPlus className="w-3 h-3" />
+                              요청
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })
                   )}
                 </motion.div>
               )}

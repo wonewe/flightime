@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Users } from 'lucide-react'
 import type { Aircraft } from '../types'
 import { SEAT_CONFIGS, type SeatConfig } from '../seatConfigs'
 
@@ -8,6 +9,7 @@ const ease = [0.16, 1, 0.3, 1] as const
 interface Props {
   aircraft: Aircraft
   onSelectSeat: (seatCode: string) => void
+  onInviteFriend?: () => void
 }
 
 // Direct pixel values — no transform: scale needed
@@ -23,7 +25,7 @@ function getSeatType(col: string, config: SeatConfig): string {
   return '가운데'
 }
 
-export function SeatMap({ aircraft, onSelectSeat }: Props) {
+export function SeatMap({ aircraft, onSelectSeat, onInviteFriend }: Props) {
   const config = SEAT_CONFIGS[aircraft.id]
   const layout = aircraft.type === 'Narrow' ? LAYOUT.narrow : LAYOUT.wide
   const [selectedSeat, setSelectedSeat] = useState<string | null>(null)
@@ -240,21 +242,34 @@ export function SeatMap({ aircraft, onSelectSeat }: Props) {
             transition={{ duration: 0.25, ease }}
             className="absolute bottom-6 left-0 right-0 z-20"
           >
-            <div className="flex items-center justify-between max-w-[340px] mx-auto px-5 py-3 rounded-2xl bg-night-950/80 backdrop-blur-md border border-white/[0.08]">
+            <div className="flex items-center justify-between max-w-[380px] mx-auto px-5 py-3 rounded-2xl bg-night-950/80 backdrop-blur-md border border-white/[0.08]">
               <div className="flex items-baseline gap-3">
                 <p className="text-[22px] font-mono font-bold text-white/85 tracking-wider">
                   {selectedSeat}
                 </p>
                 <p className="text-[11px] text-white/40">{selectedType}</p>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => onSelectSeat(selectedSeat)}
-                className="px-8 py-2.5 rounded-xl bg-white/[0.08] border border-white/[0.10] text-white/75 font-medium text-[13px] tracking-wide hover:bg-white/[0.14] hover:text-white/90 transition-all duration-300"
-              >
-                선택
-              </motion.button>
+              <div className="flex items-center gap-2">
+                {onInviteFriend && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={onInviteFriend}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/50 text-[12px] tracking-wide hover:bg-white/[0.10] hover:text-white/70 transition-all duration-300"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    친구 초대
+                  </motion.button>
+                )}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onSelectSeat(selectedSeat)}
+                  className="px-8 py-2.5 rounded-xl bg-white/[0.08] border border-white/[0.10] text-white/75 font-medium text-[13px] tracking-wide hover:bg-white/[0.14] hover:text-white/90 transition-all duration-300"
+                >
+                  선택
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         )}

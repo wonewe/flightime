@@ -11,9 +11,13 @@ function rowToRecord(row: TripRow): TripRecord {
 }
 
 export async function loadTripsSupabase(): Promise<TripRecord[]> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
   const { data, error } = await supabase
     .from('trips')
     .select('*')
+    .eq('user_id', user.id)
     .order('completed_at', { ascending: false })
 
   if (error) {

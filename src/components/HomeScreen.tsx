@@ -13,8 +13,9 @@ import { FriendsPanel } from './FriendsPanel'
 import { SettingsPanel, getHubAirport } from './SettingsPanel'
 import { AirportCatalog } from './AirportCatalog'
 import { useFriends } from '../hooks/useFriends'
+import { searchProfiles } from '../lib/friendships'
 import { AIRPORT_UNLOCK_COST, AIRCRAFT_UNLOCK_COST } from '../constants/unlockCosts'
-import type { PresenceState } from '../types'
+import type { PresenceState, Profile } from '../types'
 
 type Phase = 'idle' | 'selectFrom' | 'selectTo' | 'selectAircraft' | 'selectSeat'
 
@@ -47,7 +48,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
   const [showFriends, setShowFriends] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showAirportCatalog, setShowAirportCatalog] = useState(false)
-  const { pendingReceived } = useFriends(user?.id)
+  const { pendingReceived, pendingSent, acceptedFriends, send, accept } = useFriends(user?.id)
   const [trips, setTrips] = useState<TripRecord[]>([])
   const [expandedRoute, setExpandedRoute] = useState<string | null>(null)
   const [phase, setPhase] = useState<Phase>('idle')
@@ -58,6 +59,10 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
   const [focusedIdx, setFocusedIdx] = useState(0)
   const [search, setSearch] = useState('')
   const [unlockConfirm, setUnlockConfirm] = useState<{ type: 'airport' | 'aircraft'; id: string; name: string; cost: number } | null>(null)
+  const [showFriendInvite, setShowFriendInvite] = useState(false)
+  const [inviteSearch, setInviteSearch] = useState('')
+  const [inviteResults, setInviteResults] = useState<Profile[]>([])
+  const [inviteSearching, setInviteSearching] = useState(false)
 
   useEffect(() => {
     loadTripsSupabase().then(setTrips)
@@ -263,6 +268,30 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
 
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-US', { day: '2-digit', month: 'short' }).toUpperCase()
+
+  const handleInviteSearch = useCallback(async (q: string) => {
+    setInviteSearch(q)
+    if (q.trim().length < 2) {
+      setInviteResults([])
+      return
+    }
+    setInviteSearching(true)
+    const results = await searchProfiles(q.trim())
+    setInviteResults(user?.id ? results.filter(p => p.id !== user.id) : results)
+    setInviteSearching(false)
+  }, [user?.id])
+
+  const getInviteStatus = useCallback((profileId: string): 'none' | 'sent' | 'received' | 'friend' => {
+    if (acceptedFriends.some(f => f.user_id === profileId || f.friend_id === profileId)) return 'friend'
+    if (pendingSent.some(f => f.friend_id === profileId)) return 'sent'
+    const received = pendingReceived.find(f => f.user_id === profileId)
+    if (received) return 'received'
+    return 'none'
+  }, [acceptedFriends, pendingSent, pendingReceived])
+
+  const getReceivedFriendshipId = useCallback((profileId: string): string | undefined => {
+    return pendingReceived.find(f => f.user_id === profileId)?.id
+  }, [pendingReceived])
 
   // Route summary shown in aircraft/seat phases
   const routeSummary = fromAirport && toAirport && (
@@ -623,7 +652,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
 
               <div className="mb-3">{routeSummary}</div>
 
-              <SeatMap aircraft={aircraft} onSelectSeat={handleSelectSeat} />
+              <SeatMap aircraft={aircraft} onSelectSeat={handleSelectSeat} onInviteFriend={() => setShowFriendInvite(true)} />
             </motion.div>
           )}
 
@@ -804,6 +833,90 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
           onUnlock={onUnlock}
         />
       )}
+
+      {/* Friend Invite Modal */}
+      <AnimatePresence>
+        {showFriendInvite && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => { setShowFriendInvite(false); setInviteSearch(''); setInviteResults([]) }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="w-[300px] bg-[#0f1420] border border-white/[0.08] rounded-2xl p-5"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-sky-400/70" />
+                  <span className="text-[13px] font-mono font-semibold text-white/70 tracking-wider">친구 초대</span>
+                </div>
+                <button
+                  onClick={() => { setShowFriendInvite(false); setInviteSearch(''); setInviteResults([]) }}
+                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5 text-white/40" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 bg-white/[0.06] border border-white/[0.10] rounded-xl px-3 py-2.5 mb-3">
+                <Search className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder="유저 검색"
+                  value={inviteSearch}
+                  onChange={e => handleInviteSearch(e.target.value)}
+                  className="flex-1 bg-transparent text-[13px] font-mono text-white/80 placeholder:text-white/30 outline-none"
+                  autoFocus
+                />
+              </div>
+
+              <div className="max-h-[200px] overflow-y-auto rounded-xl">
+                {inviteSearch.trim().length < 2 ? (
+                  <div className="py-6 text-center text-[11px] text-white/30">2글자 이상 입력하세요</div>
+                ) : inviteSearching ? (
+                  <div className="py-6 text-center text-[11px] text-white/40">검색 중...</div>
+                ) : inviteResults.length === 0 ? (
+                  <div className="py-6 text-center text-[11px] text-white/40">결과 없음</div>
+                ) : (
+                  inviteResults.map(profile => {
+                    const status = getInviteStatus(profile.id)
+                    return (
+                      <div key={profile.id} className="flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.06] rounded-lg transition-colors">
+                        <span className="text-[12px] font-mono text-white/70">{profile.username}</span>
+                        {status === 'friend' ? (
+                          <span className="text-[10px] text-emerald-400/60">친구</span>
+                        ) : status === 'sent' ? (
+                          <span className="text-[10px] text-white/30">요청됨</span>
+                        ) : status === 'received' ? (
+                          <button
+                            onClick={() => { const fid = getReceivedFriendshipId(profile.id); if (fid) accept(fid) }}
+                            className="px-3 py-1 rounded-lg bg-emerald-400/[0.10] border border-emerald-400/[0.15] text-[10px] text-emerald-400/80 hover:bg-emerald-400/[0.20] transition-colors"
+                          >
+                            수락
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => send(profile.id)}
+                            className="px-3 py-1 rounded-lg bg-sky-400/[0.10] border border-sky-400/[0.15] text-[10px] text-sky-400/80 hover:bg-sky-400/[0.20] transition-colors"
+                          >
+                            요청
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Unlock Confirmation Dialog */}
       <AnimatePresence>
