@@ -44,29 +44,39 @@ export function useOnlinePresence(
   useEffect(() => {
     if (!userId || !username) return
 
+    console.log('[Presence] creating channel', { userId, username })
+
     const channel = supabase.channel('presence:online', {
       config: { presence: { key: userId } },
     })
 
     channel
       .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState()
+        console.log('[Presence] sync', Object.keys(state), state)
         buildMap(channel)
       })
-      .on('presence', { event: 'join' }, () => {
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        console.log('[Presence] join', key, newPresences)
         buildMap(channel)
       })
-      .on('presence', { event: 'leave' }, () => {
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+        console.log('[Presence] leave', key, leftPresences)
         buildMap(channel)
       })
-      .subscribe((subscribeStatus, err) => {
+      .subscribe(async (subscribeStatus, err) => {
+        console.log('[Presence] subscribe status:', subscribeStatus, err ?? '')
         if (subscribeStatus === 'SUBSCRIBED') {
-          channel.track({
-            status: statusRef.current,
-            userId,
-            username,
-          } satisfies PresenceEntry)
-        } else if (err) {
-          console.error('Presence subscribe error:', subscribeStatus, err.message)
+          try {
+            const trackResult = await channel.track({
+              status: statusRef.current,
+              userId,
+              username,
+            } satisfies PresenceEntry)
+            console.log('[Presence] track result:', trackResult)
+          } catch (e) {
+            console.error('[Presence] track error:', e)
+          }
         }
       })
 
