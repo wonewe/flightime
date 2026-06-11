@@ -1,9 +1,17 @@
 import { supabase } from '../lib/supabase'
 
 export async function initMileageRow(userId: string) {
-  await supabase
+  const { data } = await supabase
     .from('user_mileage')
-    .upsert({ user_id: userId, balance: 0, total_earned: 0 }, { onConflict: 'user_id', ignoreDuplicates: true })
+    .select('user_id')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (!data) {
+    await supabase
+      .from('user_mileage')
+      .insert({ user_id: userId, balance: 0, total_earned: 0 })
+  }
 }
 
 export async function loadMileage(userId: string): Promise<{ balance: number; totalEarned: number }> {
