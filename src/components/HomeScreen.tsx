@@ -27,6 +27,9 @@ interface Props {
   unlockedAircraft: Set<string>
   onUnlock: (type: 'airport' | 'aircraft', itemId: string) => Promise<void>
   sendFlightInvite: (toUserId: string, invite: FlightInvite) => Promise<void>
+  pendingFlightInvites: FlightInvite[]
+  onAcceptFlightInvite: (invite: FlightInvite) => void
+  onDismissFlightInvite: (fromUserId: string) => void
 }
 
 const ease = [0.16, 1, 0.3, 1] as const
@@ -42,7 +45,7 @@ function generateFlightNumber(): string {
   return `FT-${num}`
 }
 
-export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, unlockedAirports, unlockedAircraft, onUnlock, sendFlightInvite }: Props) {
+export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, unlockedAirports, unlockedAircraft, onUnlock, sendFlightInvite, pendingFlightInvites, onAcceptFlightInvite, onDismissFlightInvite }: Props) {
   const { signOut, user } = useAuth()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [showHistory, setShowHistory] = useState(false)
@@ -401,8 +404,8 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                 >
                   <Users className="w-3.5 h-3.5" />
                   친구
-                  {pendingReceived.length > 0 && (
-                    <span className="text-[9px] font-mono text-sky-400 bg-sky-400/15 rounded-full px-1.5 py-0.5 ml-1">{pendingReceived.length}</span>
+                  {(pendingReceived.length + pendingFlightInvites.length) > 0 && (
+                    <span className="text-[9px] font-mono text-sky-400 bg-sky-400/15 rounded-full px-1.5 py-0.5 ml-1">{pendingReceived.length + pendingFlightInvites.length}</span>
                   )}
                 </motion.button>
 
@@ -818,7 +821,13 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
 
       {/* Friends Panel */}
       {showFriends && (
-        <FriendsPanel onClose={() => setShowFriends(false)} presenceMap={presenceMap} />
+        <FriendsPanel
+          onClose={() => setShowFriends(false)}
+          presenceMap={presenceMap}
+          pendingFlightInvites={pendingFlightInvites}
+          onAcceptFlightInvite={(invite) => { setShowFriends(false); onAcceptFlightInvite(invite) }}
+          onDismissFlightInvite={onDismissFlightInvite}
+        />
       )}
 
       {/* Settings Panel */}
@@ -903,6 +912,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                                   fromUsername: user.user_metadata?.username ?? '',
                                   fromCode: fromAirport.code,
                                   toCode: toAirport.code,
+                                  aircraftId: aircraft?.id ?? 'b737',
                                   flightNumber: generateFlightNumber(),
                                 })
                                 setInvitedIds(prev => new Set(prev).add(profile.id))

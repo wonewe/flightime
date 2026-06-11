@@ -105,5 +105,6 @@ export interface FlightInvite {
   fromUsername: string
   fromCode: string
   toCode: string
+  aircraftId: string
   flightNumber: string
 }

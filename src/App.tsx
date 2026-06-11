@@ -12,6 +12,8 @@ import { useOnlinePresence } from './hooks/useOnlinePresence'
 import { useFlightInvites } from './hooks/useFlightInvites'
 import { useMileage } from './hooks/useMileage'
 import { MILEAGE_PER_MINUTE } from './constants/unlockCosts'
+import { AIRPORTS, AIRCRAFT } from './constants'
+import { haversineDistance } from './utils/geo'
 import type { FlightConfig, FlightInvite, PresenceState } from './types'
 
 type Screen = 'home' | 'boarding' | 'inflight' | 'landed'
@@ -41,7 +43,7 @@ export default function App() {
     })
   }, [])
 
-  const { sendInvite } = useFlightInvites(user?.id, handleFlightInvite)
+  const { sendInvite, pendingInvites, dismissInvite } = useFlightInvites(user?.id, handleFlightInvite)
 
   // Migrate localStorage trips on first login
   useEffect(() => {
@@ -55,6 +57,28 @@ export default function App() {
     setConfig(c)
     setScreen('boarding')
   }, [])
+
+  const handleAcceptInvite = useCallback((invite: FlightInvite) => {
+    const fromAirport = AIRPORTS.find(a => a.code === invite.fromCode)
+    const toAirport = AIRPORTS.find(a => a.code === invite.toCode)
+    const aircraft = AIRCRAFT.find(a => a.id === invite.aircraftId)
+    if (!fromAirport || !toAirport || !aircraft) return
+
+    const seatLetters = ['A', 'C', 'F']
+    const seat = `${Math.floor(Math.random() * 30) + 1}${seatLetters[Math.floor(Math.random() * seatLetters.length)]}`
+
+    const flightConfig: FlightConfig = {
+      from: fromAirport,
+      to: toAirport,
+      aircraft,
+      seat,
+      distanceKm: Math.round(haversineDistance(fromAirport, toAirport)),
+      flightNumber: invite.flightNumber,
+    }
+
+    dismissInvite(invite.fromUserId)
+    handleFlightConfigured(flightConfig)
+  }, [dismissInvite, handleFlightConfigured])
 
   const handleBoard = useCallback((minutes: number, todoItems: string[]) => {
     setDurationMinutes(minutes)
@@ -108,7 +132,7 @@ export default function App() {
       <AnimatePresence mode="wait">
         {screen === 'home' && (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="h-full">
-            <HomeScreen onFlightConfigured={handleFlightConfigured} presenceMap={presenceMap} mileageBalance={mileage.balance} unlockedAirports={mileage.unlockedAirports} unlockedAircraft={mileage.unlockedAircraft} onUnlock={mileage.unlock} sendFlightInvite={sendInvite} />
+            <HomeScreen onFlightConfigured={handleFlightConfigured} presenceMap={presenceMap} mileageBalance={mileage.balance} unlockedAirports={mileage.unlockedAirports} unlockedAircraft={mileage.unlockedAircraft} onUnlock={mileage.unlock} sendFlightInvite={sendInvite} pendingFlightInvites={pendingInvites} onAcceptFlightInvite={handleAcceptInvite} onDismissFlightInvite={dismissInvite} />
           </motion.div>
         )}
         {screen === 'boarding' && config && (

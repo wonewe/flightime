@@ -8,14 +8,17 @@ import { searchProfiles } from '../lib/friendships'
 import { loadFriendMileages } from '../utils/mileageSupabase'
 import { FriendFlightCard } from './FriendFlightCard'
 import { FriendTripHistory } from './FriendTripHistory'
-import type { Profile, FriendWithProfile, ActiveFlight } from '../types'
+import type { Profile, FriendWithProfile, ActiveFlight, FlightInvite } from '../types'
 
 interface Props {
   onClose: () => void
   presenceMap: Map<string, { status: 'online' | 'flying'; userId: string; username: string }>
+  pendingFlightInvites: FlightInvite[]
+  onAcceptFlightInvite: (invite: FlightInvite) => void
+  onDismissFlightInvite: (fromUserId: string) => void
 }
 
-export function FriendsPanel({ onClose, presenceMap }: Props) {
+export function FriendsPanel({ onClose, presenceMap, pendingFlightInvites, onAcceptFlightInvite, onDismissFlightInvite }: Props) {
   const { user } = useAuth()
   const userId = user?.id
   const { acceptedFriends, pendingReceived, pendingSent, friendUserIds, getFriendUserId, send, accept, reject, remove } = useFriends(userId)
@@ -166,6 +169,42 @@ export function FriendsPanel({ onClose, presenceMap }: Props) {
               )}
             </AnimatePresence>
           </div>
+
+          {/* Flight invites */}
+          {pendingFlightInvites.length > 0 && (
+            <div className="px-4 pt-3 pb-2 border-b border-white/10">
+              <p className="text-[10px] font-mono text-amber-400/70 tracking-wider mb-2">비행 초대</p>
+              <div className="space-y-1.5">
+                {pendingFlightInvites.map(invite => (
+                  <div key={invite.fromUserId} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-amber-400/[0.05] border border-amber-400/[0.10]">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-mono text-white/70 truncate">
+                        {invite.fromUsername}님의 비행
+                      </p>
+                      <p className="text-[10px] font-mono text-amber-400/60 mt-0.5">
+                        {invite.fromCode} → {invite.toCode}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                      <button
+                        onClick={() => onAcceptFlightInvite(invite)}
+                        className="px-2.5 py-1 rounded-lg bg-sky-400/[0.12] text-[10px] font-mono text-sky-400/90 hover:bg-sky-400/[0.22] transition-colors"
+                      >
+                        수락
+                      </button>
+                      <button
+                        onClick={() => onDismissFlightInvite(invite.fromUserId)}
+                        className="w-6 h-6 flex items-center justify-center rounded-full bg-red-500/10 hover:bg-red-500/20 transition-colors"
+                        title="거절"
+                      >
+                        <XIcon className="w-3 h-3 text-red-400/60" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Pending received requests */}
           {pendingReceived.length > 0 && (
