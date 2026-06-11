@@ -11,6 +11,7 @@ import {
   loadUnlocks,
   unlockItem,
   initMileageRow,
+  claimDailyCheckin,
 } from '../utils/mileageSupabase'
 
 export function useMileage(userId?: string) {
@@ -19,6 +20,7 @@ export function useMileage(userId?: string) {
   const [unlockedAirports, setUnlockedAirports] = useState<Set<string>>(new Set(INITIALLY_UNLOCKED_AIRPORTS))
   const [unlockedAircraft, setUnlockedAircraft] = useState<Set<string>>(new Set(INITIALLY_UNLOCKED_AIRCRAFT))
   const [loading, setLoading] = useState(true)
+  const [dailyEarned, setDailyEarned] = useState(0)
 
   useEffect(() => {
     if (!userId) { setLoading(false); return }
@@ -26,11 +28,13 @@ export function useMileage(userId?: string) {
 
     async function load() {
       await initMileageRow(userId!)
+      const checkinAmount = await claimDailyCheckin(userId!)
       const [mileage, unlocks] = await Promise.all([loadMileage(userId!), loadUnlocks(userId!)])
       if (cancelled) return
 
       setBalance(mileage.balance)
       setTotalEarned(mileage.totalEarned)
+      setDailyEarned(checkinAmount)
 
       const airports = new Set(INITIALLY_UNLOCKED_AIRPORTS)
       const aircraft = new Set(INITIALLY_UNLOCKED_AIRCRAFT)
@@ -70,5 +74,5 @@ export function useMileage(userId?: string) {
     }
   }, [userId, balance])
 
-  return { balance, totalEarned, unlockedAirports, unlockedAircraft, loading, earn, unlock }
+  return { balance, totalEarned, unlockedAirports, unlockedAircraft, loading, earn, unlock, dailyEarned }
 }

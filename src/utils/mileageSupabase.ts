@@ -82,6 +82,31 @@ export async function unlockItem(userId: string, type: 'airport' | 'aircraft', i
   return newBalance
 }
 
+export async function claimDailyCheckin(userId: string): Promise<number> {
+  const todayKST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+  const { data } = await supabase
+    .from('user_mileage')
+    .select('balance, total_earned, last_checkin')
+    .eq('user_id', userId)
+    .single()
+
+  if (!data) return 0
+  if (data.last_checkin === todayKST) return 0
+
+  const amount = 100
+  await supabase
+    .from('user_mileage')
+    .update({
+      balance: data.balance + amount,
+      total_earned: data.total_earned + amount,
+      last_checkin: todayKST,
+    })
+    .eq('user_id', userId)
+
+  return amount
+}
+
 export async function loadFriendMileages(userIds: string[]): Promise<Map<string, { balance: number; totalEarned: number }>> {
   const result = new Map<string, { balance: number; totalEarned: number }>()
   if (userIds.length === 0) return result

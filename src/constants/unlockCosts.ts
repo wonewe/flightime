@@ -1,10 +1,11 @@
 export const INITIALLY_UNLOCKED_AIRPORTS = ['ICN', 'HND', 'BKK', 'SIN', 'HKG']
 export const INITIALLY_UNLOCKED_AIRCRAFT = ['b737', 'a320']
 export const MILEAGE_PER_MINUTE = 10
+export const DAILY_CHECKIN_MILEAGE = 100
 
 export const AIRPORT_UNLOCK_COST: Record<string, number> = {
   // 근거리 (Korea + Japan)
-  GMP: 500, PUS: 500, CJU: 500,
+  GMP: 500, PUS: 500, CJU: 500, CJJ: 500,
   NRT: 500, KIX: 500, FUK: 500, CTS: 500, NGO: 500, OKA: 500,
   // 아시아
   TPE: 1000, PVG: 1000, PEK: 1000,

@@ -45,6 +45,13 @@ export default function App() {
 
   const { sendInvite, pendingInvites, dismissInvite } = useFlightInvites(user?.id, handleFlightInvite)
 
+  // Daily check-in toast
+  useEffect(() => {
+    if (mileage.dailyEarned > 0) {
+      toast(`출석 체크! +${mileage.dailyEarned}M`, { duration: 3000 })
+    }
+  }, [mileage.dailyEarned])
+
   // Migrate localStorage trips on first login
   useEffect(() => {
     if (user && !migrated.current) {

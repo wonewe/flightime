@@ -6,6 +6,7 @@ export const AIRPORTS: Airport[] = [
   { code: 'GMP', city: 'Gimpo', cityKo: '김포', country: 'KR', lat: 37.5586, lng: 126.7906 },
   { code: 'PUS', city: 'Busan', cityKo: '부산', country: 'KR', lat: 35.1796, lng: 128.9382 },
   { code: 'CJU', city: 'Jeju', cityKo: '제주', country: 'KR', lat: 33.5104, lng: 126.4913 },
+  { code: 'CJJ', city: 'Cheongju', cityKo: '청주', country: 'KR', lat: 36.7166, lng: 127.4991 },
   // Japan
   { code: 'HND', city: 'Tokyo Haneda', cityKo: '도쿄 하네다', country: 'JP', lat: 35.5494, lng: 139.7798 },
   { code: 'NRT', city: 'Tokyo Narita', cityKo: '도쿄 나리타', country: 'JP', lat: 35.7720, lng: 140.3929 },
