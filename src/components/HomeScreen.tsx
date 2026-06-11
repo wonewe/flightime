@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plane, History, Users, X, Trash2, Search, ArrowLeft, ChevronRight, ChevronLeft, LogOut, Settings, MapPin, Lock, Unlock } from 'lucide-react'
 import createGlobe from 'cobe'
-import type { Airport, Aircraft, FlightConfig, TripRecord } from '../types'
+import type { Airport, Aircraft, FlightConfig, FlightInvite, TripRecord } from '../types'
 import { AIRPORTS, AIRCRAFT } from '../constants'
 import { SeatMap } from './SeatMap'
 import { haversineDistance } from '../utils/geo'
@@ -26,6 +26,7 @@ interface Props {
   unlockedAirports: Set<string>
   unlockedAircraft: Set<string>
   onUnlock: (type: 'airport' | 'aircraft', itemId: string) => Promise<void>
+  sendFlightInvite: (toUserId: string, invite: FlightInvite) => Promise<void>
 }
 
 const ease = [0.16, 1, 0.3, 1] as const
@@ -41,7 +42,7 @@ function generateFlightNumber(): string {
   return `FT-${num}`
 }
 
-export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, unlockedAirports, unlockedAircraft, onUnlock }: Props) {
+export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, unlockedAirports, unlockedAircraft, onUnlock, sendFlightInvite }: Props) {
   const { signOut, user } = useAuth()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [showHistory, setShowHistory] = useState(false)
@@ -63,6 +64,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
   const [inviteSearch, setInviteSearch] = useState('')
   const [inviteResults, setInviteResults] = useState<Profile[]>([])
   const [inviteSearching, setInviteSearching] = useState(false)
+  const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadTripsSupabase().then(setTrips)
@@ -890,7 +892,27 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                       <div key={profile.id} className="flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.06] rounded-lg transition-colors">
                         <span className="text-[12px] font-mono text-white/70">{profile.username}</span>
                         {status === 'friend' ? (
-                          <span className="text-[10px] text-emerald-400/60">친구</span>
+                          invitedIds.has(profile.id) ? (
+                            <span className="text-[10px] text-emerald-400/60">초대됨</span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                if (!fromAirport || !toAirport || !user) return
+                                sendFlightInvite(profile.id, {
+                                  fromUserId: user.id,
+                                  fromUsername: user.user_metadata?.username ?? '',
+                                  fromCode: fromAirport.code,
+                                  toCode: toAirport.code,
+                                  flightNumber: generateFlightNumber(),
+                                })
+                                setInvitedIds(prev => new Set(prev).add(profile.id))
+                              }}
+                              disabled={!fromAirport || !toAirport}
+                              className="px-3 py-1 rounded-lg bg-sky-400/[0.10] border border-sky-400/[0.15] text-[10px] text-sky-400/80 hover:bg-sky-400/[0.20] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              초대
+                            </button>
+                          )
                         ) : status === 'sent' ? (
                           <span className="text-[10px] text-white/30">요청됨</span>
                         ) : status === 'received' ? (

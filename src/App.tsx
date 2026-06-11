@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { Toaster, toast } from 'sonner'
 import { useAuth } from './contexts/AuthContext'
 import { AuthScreen } from './components/AuthScreen'
 import { HomeScreen } from './components/HomeScreen'
@@ -8,9 +9,10 @@ import { FlightView } from './components/FlightView'
 import { LandingComplete } from './components/LandingComplete'
 import { saveTripSupabase, migrateLocalTrips } from './utils/tripHistorySupabase'
 import { useOnlinePresence } from './hooks/useOnlinePresence'
+import { useFlightInvites } from './hooks/useFlightInvites'
 import { useMileage } from './hooks/useMileage'
 import { MILEAGE_PER_MINUTE } from './constants/unlockCosts'
-import type { FlightConfig, PresenceState } from './types'
+import type { FlightConfig, FlightInvite, PresenceState } from './types'
 
 type Screen = 'home' | 'boarding' | 'inflight' | 'landed'
 
@@ -32,6 +34,14 @@ export default function App() {
     presenceStatus,
     setPresenceMap,
   )
+
+  const handleFlightInvite = useCallback((invite: FlightInvite) => {
+    toast(`${invite.fromUsername}님이 ${invite.fromCode} → ${invite.toCode} 비행에 초대했습니다`, {
+      duration: 5000,
+    })
+  }, [])
+
+  const { sendInvite } = useFlightInvites(user?.id, handleFlightInvite)
 
   // Migrate localStorage trips on first login
   useEffect(() => {
@@ -83,10 +93,22 @@ export default function App() {
 
   return (
     <div className="h-full w-full bg-night-950 overflow-hidden">
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: '#1a1f2e',
+            color: 'rgba(255,255,255,0.85)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            fontSize: '13px',
+            fontFamily: 'monospace',
+          },
+        }}
+      />
       <AnimatePresence mode="wait">
         {screen === 'home' && (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="h-full">
-            <HomeScreen onFlightConfigured={handleFlightConfigured} presenceMap={presenceMap} mileageBalance={mileage.balance} unlockedAirports={mileage.unlockedAirports} unlockedAircraft={mileage.unlockedAircraft} onUnlock={mileage.unlock} />
+            <HomeScreen onFlightConfigured={handleFlightConfigured} presenceMap={presenceMap} mileageBalance={mileage.balance} unlockedAirports={mileage.unlockedAirports} unlockedAircraft={mileage.unlockedAircraft} onUnlock={mileage.unlock} sendFlightInvite={sendInvite} />
           </motion.div>
         )}
         {screen === 'boarding' && config && (

@@ -99,3 +99,11 @@ export interface PresenceState {
   userId: string
   username: string
 }
+
+export interface FlightInvite {
+  fromUserId: string
+  fromUsername: string
+  fromCode: string
+  toCode: string
+  flightNumber: string
+}
