@@ -53,7 +53,7 @@ export function AuthScreen() {
   }
 
   const inputClass =
-    'w-full bg-white/[0.05] border border-white/[0.06] rounded-xl px-4 py-3 text-[14px] font-mono text-white/70 placeholder:text-white/20 outline-none focus:border-sky-400/30 focus:bg-white/[0.07] transition-all duration-200'
+    'w-full bg-surface/[0.05] border border-surface/[0.06] rounded-xl px-4 py-3 text-[14px] font-mono text-white/70 placeholder:text-white/20 outline-none focus:border-sky-400/30 focus:bg-surface/[0.07] transition-all duration-200'
 
   return (
     <div className="h-full flex flex-col items-center justify-center relative overflow-hidden">
@@ -88,7 +88,7 @@ export function AuthScreen() {
         </div>
 
         {/* Tab switcher */}
-        <div className="flex mb-6 bg-white/[0.03] rounded-xl p-1 border border-white/[0.04]">
+        <div className="flex mb-6 bg-surface/[0.03] rounded-xl p-1 border border-surface/[0.04]">
           {(['login', 'signup'] as const).map(t => (
             <button
               key={t}
@@ -98,7 +98,7 @@ export function AuthScreen() {
               }}
               className={`flex-1 py-2.5 rounded-lg text-[12px] font-mono tracking-wider transition-all duration-200 ${
                 tab === t
-                  ? 'bg-white/[0.08] text-white/70 border border-white/[0.06]'
+                  ? 'bg-surface/[0.08] text-white/70 border border-surface/[0.06]'
                   : 'text-white/25 hover:text-white/40 border border-transparent'
               }`}
             >
@@ -184,7 +184,7 @@ export function AuthScreen() {
             disabled={submitting}
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
-            className="w-full py-3.5 rounded-xl bg-white/[0.07] border border-white/[0.06] text-white/70 font-medium text-[13px] tracking-wide hover:bg-white/[0.12] hover:text-white/90 transition-all duration-300 disabled:opacity-40 disabled:pointer-events-none"
+            className="w-full py-3.5 rounded-xl bg-surface/[0.07] border border-surface/[0.06] text-white/70 font-medium text-[13px] tracking-wide hover:bg-surface/[0.12] hover:text-white/90 transition-all duration-300 disabled:opacity-40 disabled:pointer-events-none"
           >
             {submitting
               ? '...'

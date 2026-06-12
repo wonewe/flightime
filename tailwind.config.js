@@ -4,13 +4,16 @@ export default {
   theme: {
     extend: {
       colors: {
+        white: 'rgb(var(--c-white) / <alpha-value>)',
+        black: 'rgb(var(--c-black) / <alpha-value>)',
         night: {
-          950: '#060a14',
-          900: '#0a0e1a',
-          800: '#111827',
-          700: '#1a2236',
-          600: '#243049',
+          950: 'var(--c-night-950)',
+          900: 'var(--c-night-900)',
+          800: 'var(--c-night-800)',
+          700: 'var(--c-night-700)',
+          600: 'var(--c-night-600)',
         },
+        surface: 'rgb(var(--c-surface) / <alpha-value>)',
         sky: {
           400: '#60a5fa',
           500: '#3b82f6',

@@ -2,6 +2,7 @@ import { useEffect, useRef, useMemo, useState, useCallback } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { greatCirclePoints, interpolateGreatCircle, bearing } from '../utils/geo'
+import { useTheme } from '../contexts/ThemeContext'
 import type { Airport, ActiveFlight } from '../types'
 
 interface FriendFlight extends ActiveFlight {
@@ -15,7 +16,8 @@ interface Props {
   friendFlights?: FriendFlight[]
 }
 
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
 
 const PLANE_SVG = `<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
   <g filter="url(#g)"><path d="M18 3C17.2 3 16.5 4.5 16.5 6L16.5 13L6 18.5C5.4 18.8 5 19.3 5 19.8V20.5C5 20.9 5.3 21.1 5.7 21L16.5 17.5V26.5L13 29C12.7 29.2 12.5 29.5 12.5 29.9V30.5C12.5 30.8 12.7 31 13 30.9L18 29L23 30.9C23.3 31 23.5 30.8 23.5 30.5V29.9C23.5 29.5 23.3 29.2 23 29L19.5 26.5V17.5L30.3 21C30.7 21.1 31 20.9 31 20.5V19.8C31 19.3 30.6 18.8 30 18.5L19.5 13V6C19.5 4.5 18.8 3 18 3Z" fill="#c8ddfb"/><line x1="18" y1="7" x2="18" y2="14" stroke="#8bb4f0" stroke-width="0.8" stroke-dasharray="1.5 1.5" opacity="0.5"/></g>
@@ -61,6 +63,7 @@ function shortestRotation(current: number, target: number): number {
 const TILE_SYNC_MS = 3000
 
 export function FlightMap({ from, to, progress, friendFlights = [] }: Props) {
+  const { theme } = useTheme()
   const mapRef = useRef<L.Map | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const rotateWrapRef = useRef<HTMLDivElement>(null)
@@ -87,7 +90,7 @@ export function FlightMap({ from, to, progress, friendFlights = [] }: Props) {
       touchZoom: true, keyboard: true,
       zoomSnap: 0.5, zoomDelta: 0.5, minZoom: 3, maxZoom: 12,
     })
-    L.tileLayer(TILE_URL, { subdomains: 'abcd', maxZoom: 19 }).addTo(map)
+    L.tileLayer(theme === 'light' ? TILE_LIGHT : TILE_DARK, { subdomains: 'abcd', maxZoom: 19 }).addTo(map)
     const ll = pts.map(p => [p.lat, p.lng] as L.LatLngTuple)
     L.polyline(ll, { color: '#60a5fa', weight: 1.5, opacity: 0.15, dashArray: '6,10' }).addTo(map)
     trailRef.current = L.polyline([], { color: '#60a5fa', weight: 3, opacity: 0.8, lineCap: 'round' }).addTo(map)
@@ -97,7 +100,7 @@ export function FlightMap({ from, to, progress, friendFlights = [] }: Props) {
     mapRef.current = map
     map.fitBounds(ll as L.LatLngBoundsExpression, { padding: [80, 80] })
     return () => { map.remove(); mapRef.current = null }
-  }, [from, to, pts])
+  }, [from, to, pts, theme])
 
   // ── Per-frame update ──
   useEffect(() => {
@@ -235,12 +238,12 @@ export function FlightMap({ from, to, progress, friendFlights = [] }: Props) {
         <div ref={containerRef} className="w-full h-full" style={{ cursor: 'grab' }} />
       </div>
 
-      <div className="absolute inset-0 pointer-events-none z-[999]" style={{ background: 'radial-gradient(ellipse at center,transparent 50%,rgba(6,10,20,0.6) 100%)' }} />
+      <div className="absolute inset-0 pointer-events-none z-[999]" style={{ background: 'radial-gradient(ellipse at center,transparent 50%,rgb(var(--bg-base) / 0.6) 100%)' }} />
 
       {/* View mode toggle */}
       <button
         onClick={handleToggle}
-        className="absolute bottom-4 right-4 z-[1000] w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md bg-night-900/70 border border-white/10 hover:bg-white/10 transition-colors"
+        className="absolute bottom-4 right-4 z-[1000] w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md bg-night-900/70 border border-surface/10 hover:bg-surface/10 transition-colors"
         title={viewMode === 'normal' ? '비행기 시점' : '일반 시점'}
       >
         {viewMode === 'normal' ? (

@@ -54,7 +54,7 @@ export function LandingComplete({ config, durationMinutes, onReset, earnedMiles 
 
       <motion.div initial={{ opacity: 0, y: 25, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} className="relative z-10 w-full max-w-[340px] mx-4">
-        <div className="bg-[#0f1420] rounded-2xl border border-white/[0.06] overflow-hidden">
+        <div className="bg-night-900 rounded-2xl border border-surface/[0.06] overflow-hidden">
           <div className="px-5 pt-5 pb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Plane className="w-3.5 h-3.5 text-emerald-400/70" />
@@ -93,7 +93,7 @@ export function LandingComplete({ config, durationMinutes, onReset, earnedMiles 
           <div className="relative my-1">
             <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-night-950" />
             <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-night-950" />
-            <div className="mx-5 border-t border-dashed border-white/[0.06]" />
+            <div className="mx-5 border-t border-dashed border-surface/[0.06]" />
           </div>
 
           <div className="px-5 pt-4 pb-5">
@@ -121,7 +121,7 @@ export function LandingComplete({ config, durationMinutes, onReset, earnedMiles 
             </div>
             <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
               whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} onClick={onReset}
-              className="w-full py-3 rounded-lg bg-white/[0.06] text-white/60 font-medium text-[13px] tracking-wide hover:bg-white/[0.1] hover:text-white/80 transition-all duration-300">
+              className="w-full py-3 rounded-lg bg-surface/[0.06] text-white/60 font-medium text-[13px] tracking-wide hover:bg-surface/[0.1] hover:text-white/80 transition-all duration-300">
               다시 탑승하기
             </motion.button>
           </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plane, History, Users, X, Trash2, Search, ArrowLeft, ChevronRight, ChevronLeft, LogOut, Settings, MapPin, Lock, Unlock } from 'lucide-react'
+import { Plane, History, Users, X, Trash2, Search, ArrowLeft, ChevronRight, LogOut, Settings, MapPin, Lock, Unlock } from 'lucide-react'
 import createGlobe from 'cobe'
 import type { Airport, Aircraft, FlightConfig, FlightInvite, TripRecord } from '../types'
 import { AIRPORTS, AIRCRAFT } from '../constants'
@@ -15,6 +15,7 @@ import { AirportCatalog } from './AirportCatalog'
 import { useFriends } from '../hooks/useFriends'
 import { searchProfiles } from '../lib/friendships'
 import { AIRPORT_UNLOCK_COST, AIRCRAFT_UNLOCK_COST } from '../constants/unlockCosts'
+import { useTheme } from '../contexts/ThemeContext'
 import type { PresenceState, Profile } from '../types'
 
 type Phase = 'idle' | 'selectFrom' | 'selectTo' | 'selectAircraft' | 'selectSeat'
@@ -47,6 +48,7 @@ function generateFlightNumber(): string {
 
 export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, unlockedAirports, unlockedAircraft, onUnlock, sendFlightInvite, pendingFlightInvites, onAcceptFlightInvite, onDismissFlightInvite }: Props) {
   const { signOut, user } = useAuth()
+  const { theme } = useTheme()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [showHistory, setShowHistory] = useState(false)
   const [showFriends, setShowFriends] = useState(false)
@@ -100,19 +102,20 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
       canvas.style.width = `${size}px`
       canvas.style.height = `${size}px`
 
+      const isLight = theme === 'light'
       globe = createGlobe(canvas, {
         devicePixelRatio: 2,
         width: size * 2,
         height: size * 2,
         phi,
         theta: 0.15,
-        dark: 1,
-        diffuse: 1.2,
+        dark: isLight ? 0 : 1,
+        diffuse: isLight ? 2.5 : 1.2,
         mapSamples: 16000,
-        mapBrightness: 2.5,
-        baseColor: [0.08, 0.12, 0.22],
+        mapBrightness: isLight ? 8 : 2.5,
+        baseColor: isLight ? [0.92, 0.94, 0.97] : [0.08, 0.12, 0.22],
         markerColor: [0.376, 0.647, 0.98],
-        glowColor: [0.06, 0.09, 0.18],
+        glowColor: isLight ? [0.88, 0.90, 0.95] : [0.06, 0.09, 0.18],
         markers,
       })
     }
@@ -139,7 +142,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
       cancelAnimationFrame(rafId)
       globe.destroy()
     }
-  }, [trips])
+  }, [trips, theme])
 
   const filteredAirports = useMemo(() => {
     const exclude = phase === 'selectTo' ? fromAirport?.code : toAirport?.code
@@ -329,11 +332,11 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
 
       {/* Vignette */}
       <div className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ${phase === 'selectSeat' ? 'opacity-0' : 'opacity-100'}`}
-        style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(6,10,20,0.85) 75%)' }} />
+        style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgb(var(--bg-base) / 0.85) 75%)' }} />
       <div className={`absolute top-0 inset-x-0 h-32 pointer-events-none transition-opacity duration-500 ${phase === 'selectSeat' ? 'opacity-0' : 'opacity-100'}`}
-        style={{ background: 'linear-gradient(to bottom, rgba(6,10,20,0.9) 0%, transparent 100%)' }} />
+        style={{ background: 'linear-gradient(to bottom, rgb(var(--bg-base) / 0.9) 0%, transparent 100%)' }} />
       <div className={`absolute bottom-0 inset-x-0 h-40 pointer-events-none transition-opacity duration-500 ${phase === 'selectSeat' ? 'opacity-0' : 'opacity-100'}`}
-        style={{ background: 'linear-gradient(to top, rgba(6,10,20,0.95) 0%, transparent 100%)' }} />
+        style={{ background: 'linear-gradient(to top, rgb(var(--bg-base) / 0.95) 0%, transparent 100%)' }} />
 
       {/* Sliding content */}
       <div className="relative z-10 flex flex-col items-center w-full h-full overflow-hidden">
@@ -363,14 +366,14 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                 )}
                 <button
                   onClick={() => setShowSettings(true)}
-                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface/10 transition-colors"
                   title="설정"
                 >
                   <Settings className="w-3.5 h-3.5 text-white/40" />
                 </button>
                 <button
                   onClick={signOut}
-                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface/10 transition-colors"
                   title="로그아웃"
                 >
                   <LogOut className="w-3.5 h-3.5 text-white/40" />
@@ -378,7 +381,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
               </div>
 
               <div className="mb-2 mt-8">
-                <h1 className="text-[32px] font-mono font-bold text-white/55 tracking-[0.4em] text-center">
+                <h1 className={`text-[32px] font-mono font-bold tracking-[0.4em] text-center ${theme === 'light' ? 'text-white/90' : 'text-white/55'}`}>
                   FLIGHTIME
                 </h1>
               </div>
@@ -390,7 +393,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleStartTrip}
-                  className="w-full py-3.5 rounded-xl bg-white/[0.08] border border-white/[0.10] text-white/80 font-medium text-[13px] tracking-wide hover:bg-white/[0.14] hover:text-white/95 transition-all duration-300 flex items-center justify-center gap-2.5"
+                  className="w-full py-3.5 rounded-xl bg-surface/[0.08] border border-surface/[0.10] text-white/80 font-medium text-[13px] tracking-wide hover:bg-surface/[0.14] hover:text-white/95 transition-all duration-300 flex items-center justify-center gap-2.5"
                 >
                   <Plane className="w-3.5 h-3.5" />
                   새 여행 떠나기
@@ -400,7 +403,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setShowFriends(true)}
-                  className="w-full py-3 rounded-xl bg-transparent border border-white/[0.08] text-white/50 text-[12px] tracking-wide hover:bg-white/[0.06] hover:text-white/70 transition-all duration-300 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-transparent border border-surface/[0.08] text-white/50 text-[12px] tracking-wide hover:bg-surface/[0.06] hover:text-white/70 transition-all duration-300 flex items-center justify-center gap-2"
                 >
                   <Users className="w-3.5 h-3.5" />
                   친구
@@ -413,7 +416,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleToggleHistory}
-                  className="w-full py-3 rounded-xl bg-transparent border border-white/[0.08] text-white/50 text-[12px] tracking-wide hover:bg-white/[0.06] hover:text-white/70 transition-all duration-300 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-transparent border border-surface/[0.08] text-white/50 text-[12px] tracking-wide hover:bg-surface/[0.06] hover:text-white/70 transition-all duration-300 flex items-center justify-center gap-2"
                 >
                   <History className="w-3.5 h-3.5" />
                   기존 여행 보기
@@ -438,14 +441,14 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
               transition={{ duration: 0.35, ease }}
               className="absolute inset-0 flex flex-col items-center justify-center px-6"
             >
-              <button onClick={handleBack} className="absolute top-5 left-5 w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+              <button onClick={handleBack} className="absolute top-5 left-5 w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface/10 transition-colors">
                 <ArrowLeft className="w-4 h-4 text-white/50" />
               </button>
 
               {phase === 'selectFrom' && (
                 <button
                   onClick={() => setShowAirportCatalog(true)}
-                  className="absolute top-5 right-5 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.10] transition-colors"
+                  className="absolute top-5 right-5 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface/[0.06] border border-surface/[0.08] hover:bg-surface/[0.10] transition-colors"
                 >
                   <MapPin className="w-3 h-3 text-white/40" />
                   <span className="text-[10px] font-mono text-white/45">공항 목록</span>
@@ -468,7 +471,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
               </h2>
 
               <div className="w-full max-w-[300px] mb-3">
-                <div className="flex items-center gap-2 bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2 bg-surface/[0.06] border border-surface/[0.10] rounded-xl px-4 py-3">
                   <Search className="w-4 h-4 text-white/35" />
                   <input
                     type="text"
@@ -505,7 +508,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
                     transition={{ duration: 0.2 }}
-                    className="w-full max-w-[300px] max-h-[200px] overflow-y-auto rounded-xl bg-night-950/90 backdrop-blur-md border border-white/[0.10]"
+                    className="w-full max-w-[300px] max-h-[200px] overflow-y-auto rounded-xl bg-night-950/90 backdrop-blur-md border border-surface/[0.10]"
                   >
                     {filteredAirports.length === 0 ? (
                       <div className="px-4 py-4 text-center text-[11px] text-white/40">검색 결과 없음</div>
@@ -521,7 +524,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                           <button
                             key={airport.code}
                             onClick={() => handleSelectAirport(airport)}
-                            className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/[0.07] transition-colors group ${isLocked ? 'opacity-50' : ''}`}
+                            className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-surface/[0.07] transition-colors group ${isLocked ? 'opacity-50' : ''}`}
                           >
                             <div className="flex items-center gap-3">
                               {isLocked && <Lock className="w-3 h-3 text-white/40 -mr-1" />}
@@ -547,7 +550,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
             </motion.div>
           )}
 
-          {/* === SELECT AIRCRAFT (carousel) === */}
+          {/* === SELECT AIRCRAFT (pill tabs + image) === */}
           {phase === 'selectAircraft' && (
             <motion.div
               key="selectAircraft"
@@ -557,24 +560,41 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
               animate="center"
               exit="exit"
               transition={{ duration: 0.35, ease }}
-              className="absolute inset-0 flex flex-col items-center justify-center px-6"
+              className="absolute inset-0 flex flex-col items-center px-6 pt-14"
             >
-              <button onClick={handleBack} className="absolute top-5 left-5 w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+              <button onClick={handleBack} className="absolute top-5 left-5 w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface/10 transition-colors">
                 <ArrowLeft className="w-4 h-4 text-white/50" />
               </button>
 
               {routeSummary}
 
-              <h2 className="text-[18px] font-mono font-semibold text-white/70 tracking-[0.1em] mb-8">
+              <h2 className="text-[18px] font-mono font-semibold text-white/70 tracking-[0.1em] mb-5">
                 기체를 선택하세요
               </h2>
 
-              {/* Aircraft info */}
+              {/* Aircraft side-view image */}
+              <div className="relative w-full max-w-[360px] h-[120px] mb-5 flex items-center justify-center overflow-hidden">
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+                  }}
+                >
+                  <img
+                    src="/models/Boeing-737-800.webp"
+                    alt="Aircraft"
+                    className="w-full h-full object-contain opacity-30"
+                  />
+                </div>
+              </div>
+
+              {/* Aircraft name/type */}
               {(() => {
                 const ac = AIRCRAFT[focusedIdx]
                 const isLocked = !unlockedAircraft.has(ac.id) && !!AIRCRAFT_UNLOCK_COST[ac.id]
                 return (
-                  <div className={`text-center mb-2 ${isLocked ? 'opacity-50' : ''}`}>
+                  <div className={`text-center mb-5 ${isLocked ? 'opacity-50' : ''}`}>
                     {isLocked && <Lock className="w-4 h-4 text-white/40 mx-auto mb-2" />}
                     <p className="text-[22px] font-mono font-bold text-white/75 tracking-wider">
                       {ac.name}
@@ -586,28 +606,35 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                 )
               })()}
 
-              {/* Carousel nav */}
-              <div className="flex items-center justify-center gap-6 my-6">
-                <button
-                  onClick={() => setFocusedIdx(i => (i - 1 + AIRCRAFT.length) % AIRCRAFT.length)}
-                  className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5 text-white/45" />
-                </button>
-                <div className="flex gap-2">
-                  {AIRCRAFT.map((_, i) => (
-                    <button key={i} onClick={() => setFocusedIdx(i)}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                        i === focusedIdx ? 'bg-sky-400/70 scale-125' : 'bg-white/20'
-                      }`} />
-                  ))}
-                </div>
-                <button
-                  onClick={() => setFocusedIdx(i => (i + 1) % AIRCRAFT.length)}
-                  className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5 text-white/45" />
-                </button>
+              {/* Pill-style tabs */}
+              <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+                {AIRCRAFT.map((ac, i) => {
+                  const isLocked = !unlockedAircraft.has(ac.id) && !!AIRCRAFT_UNLOCK_COST[ac.id]
+                  const isActive = i === focusedIdx
+                  const shortName = ac.id === 'b737' ? 'B737'
+                    : ac.id === 'a320' ? 'A320'
+                    : ac.id === 'b777' ? 'B777'
+                    : ac.id === 'a350' ? 'A350'
+                    : ac.id === 'b787' ? 'B787'
+                    : ac.id === 'a380' ? 'A380'
+                    : ac.name.split(' ')[1] || ac.id.toUpperCase()
+                  return (
+                    <button
+                      key={ac.id}
+                      onClick={() => setFocusedIdx(i)}
+                      className={`px-3.5 py-1.5 rounded-full text-[11px] font-mono tracking-wider transition-all duration-200 ${
+                        isActive
+                          ? 'bg-white/90 text-night-950 font-semibold shadow-[0_0_12px_rgba(255,255,255,0.15)]'
+                          : isLocked
+                          ? 'bg-surface/[0.04] text-white/25 hover:bg-surface/[0.08]'
+                          : 'bg-surface/[0.06] text-white/45 hover:bg-surface/[0.12] hover:text-white/65'
+                      }`}
+                    >
+                      {isLocked && !isActive && <Lock className="w-2.5 h-2.5 inline mr-1 -mt-0.5" />}
+                      {shortName}
+                    </button>
+                  )
+                })}
               </div>
 
               {/* Select / Unlock button */}
@@ -623,7 +650,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                       className={`w-full py-3 rounded-xl border font-medium text-[13px] tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
                         isLocked
                           ? 'bg-amber-400/[0.08] border-amber-400/[0.15] text-amber-400/70 hover:bg-amber-400/[0.14]'
-                          : 'bg-white/[0.08] border-white/[0.10] text-white/75 hover:bg-white/[0.14] hover:text-white/90'
+                          : 'bg-surface/[0.08] border-surface/[0.10] text-white/75 hover:bg-surface/[0.14] hover:text-white/90'
                       }`}
                     >
                       {isLocked ? (
@@ -651,7 +678,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
               transition={{ duration: 0.35, ease }}
               className="absolute inset-0 flex flex-col items-center px-4 pt-5 pb-2"
             >
-              <button onClick={handleBack} className="absolute top-5 left-5 w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors z-20">
+              <button onClick={handleBack} className="absolute top-5 left-5 w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface/10 transition-colors z-20">
                 <ArrowLeft className="w-4 h-4 text-white/50" />
               </button>
 
@@ -682,12 +709,12 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                 <div className="w-full h-full bg-night-950" />
               )}
               <div className="absolute inset-0 pointer-events-none z-[999]"
-                style={{ background: 'radial-gradient(ellipse at center, transparent 50%, rgba(6,10,20,0.6) 100%)' }} />
+                style={{ background: 'radial-gradient(ellipse at center, transparent 50%, rgb(var(--bg-base) / 0.6) 100%)' }} />
             </div>
 
             {/* Close button */}
             <button onClick={handleToggleHistory}
-              className="absolute top-4 right-4 z-[1001] w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-md bg-white/[0.06] border border-white/[0.10] hover:bg-white/15 transition-colors">
+              className="absolute top-4 right-4 z-[1001] w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-md bg-surface/[0.06] border border-surface/[0.10] hover:bg-surface/15 transition-colors">
               <X className="w-4 h-4 text-white/60" />
             </button>
 
@@ -699,7 +726,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, ease }}
-                  className="backdrop-blur-xl bg-white/[0.05] border border-white/[0.08] rounded-2xl p-5 mb-3 pointer-events-auto"
+                  className="backdrop-blur-xl bg-surface/[0.05] border border-surface/[0.08] rounded-2xl p-5 mb-3 pointer-events-auto"
                 >
                   <div className="flex items-center gap-2 mb-4">
                     <History className="w-4 h-4 text-white/50" />
@@ -729,7 +756,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
               {/* Route cards */}
               <div className="flex-1 overflow-y-auto space-y-3 pointer-events-auto pr-1">
                 {routeGroups.length === 0 ? (
-                  <div className="backdrop-blur-xl bg-white/[0.04] border border-white/[0.06] rounded-2xl p-6 text-center">
+                  <div className="backdrop-blur-xl bg-surface/[0.04] border border-surface/[0.06] rounded-2xl p-6 text-center">
                     <Plane className="w-6 h-6 text-white/20 mx-auto mb-2" />
                     <p className="text-[11px] text-white/40">비행 기록 없음</p>
                   </div>
@@ -747,8 +774,8 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                         onClick={() => setExpandedRoute(prev => prev === rg.key ? null : rg.key)}
                         className={`w-full text-left backdrop-blur-xl rounded-2xl p-5 border transition-all duration-300 ${
                           expandedRoute === rg.key
-                            ? 'bg-white/[0.08] border-sky-400/25 shadow-[0_0_24px_rgba(96,165,250,0.1)]'
-                            : 'bg-white/[0.04] border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.1]'
+                            ? 'bg-surface/[0.08] border-sky-400/25 shadow-[0_0_24px_rgba(96,165,250,0.1)]'
+                            : 'bg-surface/[0.04] border-surface/[0.06] hover:bg-surface/[0.06] hover:border-surface/[0.1]'
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -774,7 +801,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                             transition={{ duration: 0.25, ease }}
                             className="overflow-hidden"
                           >
-                            <div className="mt-2 backdrop-blur-xl bg-white/[0.03] border border-white/[0.05] rounded-xl p-3.5 space-y-2">
+                            <div className="mt-2 backdrop-blur-xl bg-surface/[0.03] border border-surface/[0.05] rounded-xl p-3.5 space-y-2">
                               {rg.records.map(trip => (
                                 <div key={trip.id} className="flex items-center justify-between text-[10px] font-mono text-white/55 py-0.5">
                                   <div className="flex items-center gap-3">
@@ -784,7 +811,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                                   <span className="text-[9px] text-white/35">{trip.config.aircraft.name.split(' ').slice(0,2).join(' ')}</span>
                                 </div>
                               ))}
-                              <div className="pt-2 mt-1 border-t border-white/[0.08] flex items-center justify-between text-[9px] font-mono text-white/40">
+                              <div className="pt-2 mt-1 border-t border-surface/[0.08] flex items-center justify-between text-[9px] font-mono text-white/40">
                                 <span>총 {rg.records.length}회 · {routeKm.toLocaleString()} km</span>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleDeleteRoute(rg.key, rg.records.map(r => r.id)) }}
@@ -860,7 +887,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={e => e.stopPropagation()}
-              className="w-[300px] bg-[#0f1420] border border-white/[0.08] rounded-2xl p-5"
+              className="w-[300px] bg-night-900 border border-surface/[0.08] rounded-2xl p-5"
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -869,13 +896,13 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                 </div>
                 <button
                   onClick={() => { setShowFriendInvite(false); setInviteSearch(''); setInviteResults([]) }}
-                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface/10 transition-colors"
                 >
                   <X className="w-3.5 h-3.5 text-white/40" />
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 bg-white/[0.06] border border-white/[0.10] rounded-xl px-3 py-2.5 mb-3">
+              <div className="flex items-center gap-2 bg-surface/[0.06] border border-surface/[0.10] rounded-xl px-3 py-2.5 mb-3">
                 <Search className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
                 <input
                   type="text"
@@ -898,7 +925,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                   inviteResults.map(profile => {
                     const status = getInviteStatus(profile.id)
                     return (
-                      <div key={profile.id} className="flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.06] rounded-lg transition-colors">
+                      <div key={profile.id} className="flex items-center justify-between px-3 py-2.5 hover:bg-surface/[0.06] rounded-lg transition-colors">
                         <span className="text-[12px] font-mono text-white/70">{profile.username}</span>
                         {status === 'friend' ? (
                           invitedIds.has(profile.id) ? (
@@ -965,7 +992,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={e => e.stopPropagation()}
-              className="w-[280px] bg-[#0f1420] border border-white/[0.08] rounded-2xl p-6"
+              className="w-[280px] bg-night-900 border border-surface/[0.08] rounded-2xl p-6"
             >
               <div className="flex items-center justify-center mb-4">
                 <div className="w-10 h-10 rounded-full bg-amber-400/[0.08] flex items-center justify-center">
@@ -984,7 +1011,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
               <div className="flex gap-2">
                 <button
                   onClick={() => setUnlockConfirm(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-white/[0.06] text-white/50 text-[12px] hover:bg-white/[0.1] transition-colors"
+                  className="flex-1 py-2.5 rounded-xl bg-surface/[0.06] text-white/50 text-[12px] hover:bg-surface/[0.1] transition-colors"
                 >
                   취소
                 </button>
@@ -997,7 +1024,7 @@ export function HomeScreen({ onFlightConfigured, presenceMap, mileageBalance, un
                   className={`flex-1 py-2.5 rounded-xl text-[12px] font-medium transition-colors ${
                     mileageBalance >= unlockConfirm.cost
                       ? 'bg-amber-400/[0.15] text-amber-400/90 hover:bg-amber-400/[0.25]'
-                      : 'bg-white/[0.04] text-white/20 cursor-not-allowed'
+                      : 'bg-surface/[0.04] text-white/20 cursor-not-allowed'
                   }`}
                 >
                   {mileageBalance >= unlockConfirm.cost ? '해제' : '마일 부족'}

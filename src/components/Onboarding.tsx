@@ -111,7 +111,7 @@ export function Onboarding({ onComplete, onBack, initialFrom, initialTo }: Props
         <div className="px-5 pt-5 pb-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {(stepIndex > 0 || onBack || hasRoute) && (
-              <button onClick={goBack} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors">
+              <button onClick={goBack} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface/5 transition-colors">
                 <ArrowLeft className="w-4 h-4 text-white/30" />
               </button>
             )}
@@ -124,7 +124,7 @@ export function Onboarding({ onComplete, onBack, initialFrom, initialTo }: Props
               <div
                 key={s}
                 className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                  i <= stepIndex ? 'bg-sky-400/60' : 'bg-white/10'
+                  i <= stepIndex ? 'bg-sky-400/60' : 'bg-surface/10'
                 }`}
               />
             ))}
@@ -170,7 +170,7 @@ export function Onboarding({ onComplete, onBack, initialFrom, initialTo }: Props
               >
                 {/* Search */}
                 <div className="px-5 pb-3">
-                  <div className="flex items-center gap-2 bg-white/[0.03] rounded-lg px-3 py-2.5">
+                  <div className="flex items-center gap-2 bg-surface/[0.03] rounded-lg px-3 py-2.5">
                     <Search className="w-3.5 h-3.5 text-white/15" />
                     <input
                       type="text"
@@ -189,7 +189,7 @@ export function Onboarding({ onComplete, onBack, initialFrom, initialTo }: Props
                     <button
                       key={airport.code}
                       onClick={() => selectAirport(airport)}
-                      className="w-full flex items-center justify-between px-3 py-3 rounded-lg hover:bg-white/[0.03] transition-colors group"
+                      className="w-full flex items-center justify-between px-3 py-3 rounded-lg hover:bg-surface/[0.03] transition-colors group"
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-[15px] font-mono font-semibold tracking-[0.15em] text-white/70 w-10">
@@ -235,19 +235,19 @@ export function Onboarding({ onComplete, onBack, initialFrom, initialTo }: Props
                 <div className="flex items-center justify-center gap-5 pb-3">
                   <button
                     onClick={() => setFocusedIdx(i => (i - 1 + AIRCRAFT.length) % AIRCRAFT.length)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors"
+                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface/5 transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4 text-white/25" />
                   </button>
                   <div className="flex gap-1.5">
                     {AIRCRAFT.map((_, i) => (
                       <button key={i} onClick={() => setFocusedIdx(i)}
-                        className={`w-1.5 h-1.5 rounded-full transition-colors ${i === focusedIdx ? 'bg-sky-400/60' : 'bg-white/10'}`} />
+                        className={`w-1.5 h-1.5 rounded-full transition-colors ${i === focusedIdx ? 'bg-sky-400/60' : 'bg-surface/10'}`} />
                     ))}
                   </div>
                   <button
                     onClick={() => setFocusedIdx(i => (i + 1) % AIRCRAFT.length)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors"
+                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface/5 transition-colors"
                   >
                     <ChevronRight className="w-4 h-4 text-white/25" />
                   </button>
@@ -259,7 +259,7 @@ export function Onboarding({ onComplete, onBack, initialFrom, initialTo }: Props
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => selectAircraft(AIRCRAFT[focusedIdx])}
-                    className="w-full py-3 rounded-lg bg-white/[0.06] text-white/60 font-medium text-[13px] tracking-wide hover:bg-white/[0.1] hover:text-white/80 transition-all duration-300"
+                    className="w-full py-3 rounded-lg bg-surface/[0.06] text-white/60 font-medium text-[13px] tracking-wide hover:bg-surface/[0.1] hover:text-white/80 transition-all duration-300"
                   >
                     선택
                   </motion.button>
@@ -285,8 +285,8 @@ export function Onboarding({ onComplete, onBack, initialFrom, initialTo }: Props
                       onClick={() => selectSeat(opt)}
                       className={`flex flex-col items-center py-6 rounded-xl border transition-all ${
                         seatPref === opt.id
-                          ? 'bg-white/[0.06] border-white/[0.1]'
-                          : 'bg-white/[0.02] border-white/[0.04] hover:bg-white/[0.05] hover:border-white/[0.08]'
+                          ? 'bg-surface/[0.06] border-surface/[0.1]'
+                          : 'bg-surface/[0.02] border-surface/[0.04] hover:bg-surface/[0.05] hover:border-surface/[0.08]'
                       }`}
                     >
                       {/* Seat icon */}

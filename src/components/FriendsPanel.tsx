@@ -94,23 +94,23 @@ export function FriendsPanel({ onClose, presenceMap, pendingFlightInvites, onAcc
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-[1001] w-8 h-8 flex items-center justify-center rounded-full bg-white/10 border border-white/10 hover:bg-white/20 transition-colors"
+        className="absolute top-4 right-4 z-[1001] w-8 h-8 flex items-center justify-center rounded-full bg-surface/10 border border-surface/10 hover:bg-surface/20 transition-colors"
       >
         <X className="w-4 h-4 text-white/60" />
       </button>
 
       <div className="h-full flex">
         {/* Left sidebar */}
-        <div className="w-[280px] h-full flex flex-col border-r border-white/10 bg-night-900">
+        <div className="w-[280px] h-full flex flex-col border-r border-surface/10 bg-night-900">
           {/* Header */}
-          <div className="px-4 pt-5 pb-3 border-b border-white/10">
+          <div className="px-4 pt-5 pb-3 border-b border-surface/10">
             <div className="flex items-center gap-2 mb-4">
               <Users className="w-4 h-4 text-sky-400/70" />
               <span className="text-[13px] font-mono font-semibold text-white/70 tracking-wider">친구</span>
             </div>
 
             {/* Search */}
-            <div className="flex items-center gap-2 bg-white/[0.08] border border-white/10 rounded-xl px-3 py-2.5">
+            <div className="flex items-center gap-2 bg-surface/[0.08] border border-surface/10 rounded-xl px-3 py-2.5">
               <Search className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
               <input
                 type="text"
@@ -128,7 +128,7 @@ export function FriendsPanel({ onClose, presenceMap, pendingFlightInvites, onAcc
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
-                  className="mt-2 rounded-xl bg-night-800 border border-white/10 overflow-hidden max-h-[160px] overflow-y-auto"
+                  className="mt-2 rounded-xl bg-night-800 border border-surface/10 overflow-hidden max-h-[160px] overflow-y-auto"
                 >
                   {searching ? (
                     <div className="px-3 py-3 text-[11px] text-white/40 text-center">검색 중...</div>
@@ -138,7 +138,7 @@ export function FriendsPanel({ onClose, presenceMap, pendingFlightInvites, onAcc
                     searchResults.map(profile => {
                       const status = getSearchStatus(profile.id)
                       return (
-                        <div key={profile.id} className="flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.06]">
+                        <div key={profile.id} className="flex items-center justify-between px-3 py-2.5 hover:bg-surface/[0.06]">
                           <span className="text-[12px] font-mono text-white/70">{profile.username}</span>
                           {status === 'friend' ? (
                             <span className="text-[10px] text-white/30">친구</span>
@@ -172,7 +172,7 @@ export function FriendsPanel({ onClose, presenceMap, pendingFlightInvites, onAcc
 
           {/* Flight invites */}
           {pendingFlightInvites.length > 0 && (
-            <div className="px-4 pt-3 pb-2 border-b border-white/10">
+            <div className="px-4 pt-3 pb-2 border-b border-surface/10">
               <p className="text-[10px] font-mono text-amber-400/70 tracking-wider mb-2">비행 초대</p>
               <div className="space-y-1.5">
                 {pendingFlightInvites.map(invite => (
@@ -208,7 +208,7 @@ export function FriendsPanel({ onClose, presenceMap, pendingFlightInvites, onAcc
 
           {/* Pending received requests */}
           {pendingReceived.length > 0 && (
-            <div className="px-4 pt-3 pb-2 border-b border-white/10">
+            <div className="px-4 pt-3 pb-2 border-b border-surface/10">
               <p className="text-[10px] font-mono text-sky-400/70 tracking-wider mb-2">받은 요청</p>
               <div className="space-y-1.5">
                 {pendingReceived.map(f => (
@@ -261,7 +261,7 @@ export function FriendsPanel({ onClose, presenceMap, pendingFlightInvites, onAcc
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
                         isSelected
                           ? 'bg-sky-400/10 border border-sky-400/20'
-                          : 'hover:bg-white/[0.06] border border-transparent'
+                          : 'hover:bg-surface/[0.06] border border-transparent'
                       }`}
                     >
                       <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${statusDotClass(status)}`} />
@@ -299,7 +299,7 @@ export function FriendsPanel({ onClose, presenceMap, pendingFlightInvites, onAcc
 
             {/* Pending sent */}
             {pendingSent.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-white/[0.06]">
+              <div className="mt-4 pt-3 border-t border-surface/[0.06]">
                 <p className="text-[10px] font-mono text-white/30 tracking-wider mb-2">보낸 요청</p>
                 {pendingSent.map(f => (
                   <div key={f.id} className="flex items-center justify-between px-3 py-2">

@@ -95,7 +95,7 @@ export function FriendTripHistory({ friendId, username, mileage }: Props) {
       <div className="absolute inset-0">
         <HistoryMap routeGroups={routeGroups} selectedRoute={expandedRoute} />
         <div className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(6,10,20,0.7) 100%)' }} />
+          style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgb(var(--bg-base) / 0.7) 100%)' }} />
       </div>
 
       {/* Overlay cards */}
@@ -105,7 +105,7 @@ export function FriendTripHistory({ friendId, username, mileage }: Props) {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease }}
-          className="backdrop-blur-xl bg-night-900/80 border border-white/10 rounded-xl p-3 mb-2 pointer-events-auto"
+          className="backdrop-blur-xl bg-night-900/80 border border-surface/10 rounded-xl p-3 mb-2 pointer-events-auto"
         >
           <p className="text-[10px] font-mono text-white/50 tracking-wider mb-3">{username}의 기록</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
@@ -127,7 +127,7 @@ export function FriendTripHistory({ friendId, username, mileage }: Props) {
             </div>
           </div>
           {mileage && (
-            <div className="mt-3 pt-2.5 border-t border-white/[0.06]">
+            <div className="mt-3 pt-2.5 border-t border-surface/[0.06]">
               <p className="text-[8px] font-mono text-white/30 tracking-[0.15em]">MILEAGE</p>
               <p className="text-[14px] font-mono font-bold text-sky-400/80 mt-0.5">
                 {mileage.balance.toLocaleString()}<span className="text-[9px] text-sky-400/50 ml-1">M</span>
@@ -153,7 +153,7 @@ export function FriendTripHistory({ friendId, username, mileage }: Props) {
                 className={`w-full text-left backdrop-blur-xl rounded-lg p-2.5 border transition-all duration-300 ${
                   expandedRoute === rg.key
                     ? 'bg-night-900/80 border-sky-400/30'
-                    : 'bg-night-900/60 border-white/10 hover:bg-night-900/70'
+                    : 'bg-night-900/60 border-surface/10 hover:bg-night-900/70'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -176,7 +176,7 @@ export function FriendTripHistory({ friendId, username, mileage }: Props) {
                     transition={{ duration: 0.25, ease }}
                     className="overflow-hidden"
                   >
-                    <div className="mt-1.5 backdrop-blur-xl bg-night-900/70 border border-white/10 rounded-lg p-3 space-y-1.5">
+                    <div className="mt-1.5 backdrop-blur-xl bg-night-900/70 border border-surface/10 rounded-lg p-3 space-y-1.5">
                       {rg.records.map(trip => (
                         <div key={trip.id} className="flex items-center justify-between text-[10px] font-mono text-white/50">
                           <div className="flex items-center gap-2.5">

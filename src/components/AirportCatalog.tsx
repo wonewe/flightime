@@ -62,10 +62,10 @@ export function AirportCatalog({ onClose, unlockedAirports, mileageBalance, onUn
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ duration: 0.25 }}
         onClick={e => e.stopPropagation()}
-        className="w-[380px] max-h-[70vh] bg-[#0c1018] border border-white/[0.08] rounded-2xl flex flex-col overflow-hidden"
+        className="w-[380px] max-h-[70vh] bg-night-900 border border-surface/[0.08] rounded-2xl flex flex-col overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.06] flex-shrink-0">
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-surface/[0.06] flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <MapPin className="w-3.5 h-3.5 text-sky-400/70" />
             <span className="text-[13px] font-mono font-semibold text-white/75 tracking-wider">공항</span>
@@ -76,7 +76,7 @@ export function AirportCatalog({ onClose, unlockedAirports, mileageBalance, onUn
             </span>
             <button
               onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/[0.08] transition-colors"
+              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface/[0.08] transition-colors"
             >
               <X className="w-3.5 h-3.5 text-white/50" />
             </button>
@@ -101,12 +101,12 @@ export function AirportCatalog({ onClose, unlockedAirports, mileageBalance, onUn
                       disabled={state !== 'locked'}
                       className={`relative rounded-lg border px-2 py-2 text-left transition-all duration-200 ${
                         state === 'unlocked'
-                          ? 'bg-white/[0.06] border-sky-400/20'
+                          ? 'bg-surface/[0.06] border-sky-400/20'
                           : state === 'free'
-                          ? 'bg-white/[0.06] border-emerald-400/20'
+                          ? 'bg-surface/[0.06] border-emerald-400/20'
                           : canAfford
-                          ? 'bg-white/[0.04] border-white/[0.06] hover:bg-white/[0.07] cursor-pointer'
-                          : 'bg-white/[0.04] border-white/[0.06] opacity-40'
+                          ? 'bg-surface/[0.04] border-surface/[0.06] hover:bg-surface/[0.07] cursor-pointer'
+                          : 'bg-surface/[0.04] border-surface/[0.06] opacity-40'
                       }`}
                     >
                       <p className={`text-[12px] font-mono font-bold tracking-wider ${
@@ -157,7 +157,7 @@ export function AirportCatalog({ onClose, unlockedAirports, mileageBalance, onUn
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={e => e.stopPropagation()}
-              className="w-[260px] bg-[#0f1420] border border-white/[0.08] rounded-2xl p-5"
+              className="w-[260px] bg-night-900 border border-surface/[0.08] rounded-2xl p-5"
             >
               <div className="flex items-center justify-center mb-3">
                 <div className="w-9 h-9 rounded-full bg-amber-400/[0.08] flex items-center justify-center">
@@ -176,7 +176,7 @@ export function AirportCatalog({ onClose, unlockedAirports, mileageBalance, onUn
               <div className="flex gap-2">
                 <button
                   onClick={() => setUnlockConfirm(null)}
-                  className="flex-1 py-2 rounded-xl bg-white/[0.06] text-white/50 text-[11px] hover:bg-white/[0.1] transition-colors"
+                  className="flex-1 py-2 rounded-xl bg-surface/[0.06] text-white/50 text-[11px] hover:bg-surface/[0.1] transition-colors"
                 >
                   취소
                 </button>
@@ -189,7 +189,7 @@ export function AirportCatalog({ onClose, unlockedAirports, mileageBalance, onUn
                   className={`flex-1 py-2 rounded-xl text-[11px] font-medium transition-colors ${
                     mileageBalance >= unlockConfirm.cost
                       ? 'bg-amber-400/[0.15] text-amber-400/90 hover:bg-amber-400/[0.25]'
-                      : 'bg-white/[0.04] text-white/20 cursor-not-allowed'
+                      : 'bg-surface/[0.04] text-white/20 cursor-not-allowed'
                   }`}
                 >
                   {mileageBalance >= unlockConfirm.cost ? '해제' : '마일 부족'}

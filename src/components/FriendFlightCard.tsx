@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { greatCirclePoints, interpolateGreatCircle, bearing } from '../utils/geo'
+import { useTheme } from '../contexts/ThemeContext'
 import type { ActiveFlight } from '../types'
 
 interface Props {
@@ -9,7 +10,8 @@ interface Props {
   username: string
 }
 
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
 
 const PLANE_SVG = `<svg width="24" height="24" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
   <g filter="url(#fg)"><path d="M18 3C17.2 3 16.5 4.5 16.5 6L16.5 13L6 18.5C5.4 18.8 5 19.3 5 19.8V20.5C5 20.9 5.3 21.1 5.7 21L16.5 17.5V26.5L13 29C12.7 29.2 12.5 29.5 12.5 29.9V30.5C12.5 30.8 12.7 31 13 30.9L18 29L23 30.9C23.3 31 23.5 30.8 23.5 30.5V29.9C23.5 29.5 23.3 29.2 23 29L19.5 26.5V17.5L30.3 21C30.7 21.1 31 20.9 31 20.5V19.8C31 19.3 30.6 18.8 30 18.5L19.5 13V6C19.5 4.5 18.8 3 18 3Z" fill="#c8ddfb"/></g>
@@ -26,6 +28,7 @@ function phaseColor(p: string) {
 }
 
 export function FriendFlightCard({ flight, username }: Props) {
+  const { theme } = useTheme()
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
 
@@ -49,7 +52,7 @@ export function FriendFlightCard({ flight, username }: Props) {
       maxZoom: 8,
     })
 
-    L.tileLayer(TILE_URL, { subdomains: 'abcd', maxZoom: 19 }).addTo(map)
+    L.tileLayer(theme === 'light' ? TILE_LIGHT : TILE_DARK, { subdomains: 'abcd', maxZoom: 19 }).addTo(map)
 
     const pts = greatCirclePoints(from, to, 60)
     const ll = pts.map(p => [p.lat, p.lng] as L.LatLngTuple)
@@ -96,7 +99,7 @@ export function FriendFlightCard({ flight, username }: Props) {
     mapRef.current = map
 
     return () => { map.remove(); mapRef.current = null }
-  }, [flight.from_code, flight.to_code, flight.progress, flight.phase]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [flight.from_code, flight.to_code, flight.progress, flight.phase, theme]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pct = Math.round(flight.progress * 100)
 
@@ -108,9 +111,9 @@ export function FriendFlightCard({ flight, username }: Props) {
         <div className="flex items-center gap-3">
           <span className="text-[20px] font-mono font-bold text-white/80 tracking-wider">{flight.from_code}</span>
           <div className="flex items-center gap-1.5 flex-1">
-            <div className="flex-1 h-px bg-white/10" />
+            <div className="flex-1 h-px bg-surface/10" />
             <span className="text-[10px] text-white/30">✈</span>
-            <div className="flex-1 h-px bg-white/10" />
+            <div className="flex-1 h-px bg-surface/10" />
           </div>
           <span className="text-[20px] font-mono font-bold text-white/80 tracking-wider">{flight.to_code}</span>
         </div>
@@ -121,17 +124,17 @@ export function FriendFlightCard({ flight, username }: Props) {
       </div>
 
       {/* Mini map */}
-      <div className="flex-1 relative mx-4 rounded-xl overflow-hidden border border-white/[0.06]">
+      <div className="flex-1 relative mx-4 rounded-xl overflow-hidden border border-surface/[0.06]">
         <div ref={containerRef} className="w-full h-full" />
         <div className="absolute inset-0 pointer-events-none" style={{
-          background: 'radial-gradient(ellipse at center, transparent 50%, rgba(6,10,20,0.4) 100%)'
+          background: 'radial-gradient(ellipse at center, transparent 50%, rgb(var(--bg-base) / 0.4) 100%)'
         }} />
       </div>
 
       {/* Info bar */}
       <div className="px-6 py-4">
         {/* Progress bar */}
-        <div className="w-full h-1 bg-white/[0.06] rounded-full overflow-hidden mb-3">
+        <div className="w-full h-1 bg-surface/[0.06] rounded-full overflow-hidden mb-3">
           <div className="h-full bg-sky-400/60 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
         </div>
 

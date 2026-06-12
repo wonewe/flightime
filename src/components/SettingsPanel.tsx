@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Settings, User, Monitor, LogOut, MapPin, Search, ChevronRight } from 'lucide-react'
+import { X, Settings, User, Monitor, LogOut, MapPin, Search, ChevronRight, Sun, Moon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useUIScale } from '../contexts/UIScaleContext'
+import { useTheme } from '../contexts/ThemeContext'
 import { AIRPORTS } from '../constants'
 import type { Airport } from '../types'
 
@@ -35,6 +36,7 @@ function setHubAirport(airport: Airport | null) {
 export function SettingsPanel({ onClose }: Props) {
   const { user, signOut } = useAuth()
   const { scale, setScale } = useUIScale()
+  const { theme, setTheme } = useTheme()
   const [hub, setHub] = useState<Airport | null>(getHubAirport)
   const [hubSearch, setHubSearch] = useState('')
   const [showHubPicker, setShowHubPicker] = useState(false)
@@ -80,7 +82,7 @@ export function SettingsPanel({ onClose }: Props) {
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-[1001] w-8 h-8 flex items-center justify-center rounded-full bg-white/10 border border-white/10 hover:bg-white/20 transition-colors"
+        className="absolute top-4 right-4 z-[1001] w-8 h-8 flex items-center justify-center rounded-full bg-surface/10 border border-surface/10 hover:bg-surface/20 transition-colors"
       >
         <X className="w-4 h-4 text-white/60" />
       </button>
@@ -94,7 +96,7 @@ export function SettingsPanel({ onClose }: Props) {
 
         <div className="w-full max-w-[320px] space-y-6">
           {/* Profile section */}
-          <div className="backdrop-blur-xl bg-white/[0.06] border border-white/[0.12] rounded-2xl p-6">
+          <div className="backdrop-blur-xl bg-surface/[0.06] border border-surface/[0.12] rounded-2xl p-6">
             <p className="text-[10px] font-mono text-white/45 tracking-[0.2em] mb-4">PROFILE</p>
             <div className="flex items-center gap-4">
               <div className="w-11 h-11 rounded-full bg-sky-400/10 border border-sky-400/25 flex items-center justify-center flex-shrink-0">
@@ -108,7 +110,7 @@ export function SettingsPanel({ onClose }: Props) {
             </div>
 
             {/* Hub airport */}
-            <div className="mt-5 pt-5 border-t border-white/[0.08]">
+            <div className="mt-5 pt-5 border-t border-surface/[0.08]">
               <div className="flex items-center gap-2 mb-3">
                 <MapPin className="w-3.5 h-3.5 text-white/50" />
                 <span className="text-[10px] font-mono text-white/45 tracking-[0.2em]">HUB AIRPORT</span>
@@ -137,7 +139,7 @@ export function SettingsPanel({ onClose }: Props) {
                 </div>
               ) : (
                 <div className="relative">
-                  <div className="flex items-center gap-2 bg-white/[0.07] border border-white/[0.12] rounded-xl px-3 py-2.5">
+                  <div className="flex items-center gap-2 bg-surface/[0.07] border border-surface/[0.12] rounded-xl px-3 py-2.5">
                     <Search className="w-3.5 h-3.5 text-white/40 flex-shrink-0" />
                     <input
                       type="text"
@@ -163,7 +165,7 @@ export function SettingsPanel({ onClose }: Props) {
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -4 }}
-                        className="absolute left-0 right-0 mt-1.5 rounded-xl bg-night-800 border border-white/[0.12] overflow-hidden max-h-[150px] overflow-y-auto z-10"
+                        className="absolute left-0 right-0 mt-1.5 rounded-xl bg-night-800 border border-surface/[0.12] overflow-hidden max-h-[150px] overflow-y-auto z-10"
                       >
                         {filteredAirports.length === 0 ? (
                           <div className="px-3 py-3 text-[11px] text-white/45 text-center">결과 없음</div>
@@ -172,7 +174,7 @@ export function SettingsPanel({ onClose }: Props) {
                             <button
                               key={airport.code}
                               onClick={() => handleSelectHub(airport)}
-                              className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.08] transition-colors group"
+                              className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-surface/[0.08] transition-colors group"
                             >
                               <div className="flex items-center gap-3">
                                 <span className="text-[13px] font-mono font-semibold tracking-wider text-white/75 w-10">{airport.code}</span>
@@ -191,7 +193,7 @@ export function SettingsPanel({ onClose }: Props) {
           </div>
 
           {/* UI Scale section */}
-          <div className="backdrop-blur-xl bg-white/[0.06] border border-white/[0.12] rounded-2xl p-6">
+          <div className="backdrop-blur-xl bg-surface/[0.06] border border-surface/[0.12] rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
               <Monitor className="w-3.5 h-3.5 text-white/50" />
               <span className="text-[10px] font-mono text-white/45 tracking-[0.2em]">UI SIZE</span>
@@ -205,7 +207,7 @@ export function SettingsPanel({ onClose }: Props) {
                   className={`flex-1 py-2.5 rounded-xl text-[12px] font-mono tracking-wide transition-all duration-300 ${
                     scale === opt.value
                       ? 'bg-sky-400/15 border border-sky-400/35 text-sky-400/95'
-                      : 'bg-white/[0.05] border border-white/[0.10] text-white/55 hover:bg-white/[0.10] hover:text-white/75'
+                      : 'bg-surface/[0.05] border border-surface/[0.10] text-white/55 hover:bg-surface/[0.10] hover:text-white/75'
                   }`}
                 >
                   {opt.label}
@@ -214,10 +216,41 @@ export function SettingsPanel({ onClose }: Props) {
             </div>
           </div>
 
+          {/* Theme section */}
+          <div className="backdrop-blur-xl bg-surface/[0.06] border border-surface/[0.12] rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              {theme === 'dark' ? <Moon className="w-3.5 h-3.5 text-white/50" /> : <Sun className="w-3.5 h-3.5 text-white/50" />}
+              <span className="text-[10px] font-mono text-white/45 tracking-[0.2em]">THEME</span>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setTheme('dark')}
+                className={`flex-1 py-2.5 rounded-xl text-[12px] font-mono tracking-wide transition-all duration-300 ${
+                  theme === 'dark'
+                    ? 'bg-sky-400/15 border border-sky-400/35 text-sky-400/95'
+                    : 'bg-surface/[0.05] border border-surface/[0.10] text-white/55 hover:bg-surface/[0.10] hover:text-white/75'
+                }`}
+              >
+                다크
+              </button>
+              <button
+                onClick={() => setTheme('light')}
+                className={`flex-1 py-2.5 rounded-xl text-[12px] font-mono tracking-wide transition-all duration-300 ${
+                  theme === 'light'
+                    ? 'bg-sky-400/15 border border-sky-400/35 text-sky-400/95'
+                    : 'bg-surface/[0.05] border border-surface/[0.10] text-white/55 hover:bg-surface/[0.10] hover:text-white/75'
+                }`}
+              >
+                라이트
+              </button>
+            </div>
+          </div>
+
           {/* Sign out */}
           <button
             onClick={handleSignOut}
-            className="w-full py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/50 text-[12px] font-mono tracking-wide hover:bg-red-500/10 hover:border-red-500/25 hover:text-red-400/70 transition-all duration-300 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl bg-surface/[0.04] border border-surface/[0.08] text-white/50 text-[12px] font-mono tracking-wide hover:bg-red-500/10 hover:border-red-500/25 hover:text-red-400/70 transition-all duration-300 flex items-center justify-center gap-2"
           >
             <LogOut className="w-3.5 h-3.5" />
             로그아웃

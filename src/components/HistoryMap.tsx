@@ -3,8 +3,10 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { Airport, TripRecord } from '../types'
 import { greatCirclePoints } from '../utils/geo'
+import { useTheme } from '../contexts/ThemeContext'
 
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
 
 export interface RouteGroup {
   key: string
@@ -19,6 +21,7 @@ interface Props {
 }
 
 export function HistoryMap({ routeGroups, selectedRoute }: Props) {
+  const { theme } = useTheme()
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const linesRef = useRef<Map<string, L.Polyline>>(new Map())
@@ -40,7 +43,7 @@ export function HistoryMap({ routeGroups, selectedRoute }: Props) {
       maxZoom: 8,
     })
 
-    L.tileLayer(TILE_URL, { subdomains: 'abcd', maxZoom: 19 }).addTo(map)
+    L.tileLayer(theme === 'light' ? TILE_LIGHT : TILE_DARK, { subdomains: 'abcd', maxZoom: 19 }).addTo(map)
 
     const allBounds: L.LatLngTuple[] = []
     const seen = new Set<string>()
@@ -86,7 +89,7 @@ export function HistoryMap({ routeGroups, selectedRoute }: Props) {
 
     mapRef.current = map
     return () => { map.remove(); mapRef.current = null }
-  }, [routeGroups])
+  }, [routeGroups, theme])
 
   useEffect(() => {
     linesRef.current.forEach((line, key) => {

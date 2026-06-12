@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { motion, useAnimation } from 'framer-motion'
-import { Plane, Plus, X } from 'lucide-react'
+import { PlaneTakeoff, X } from 'lucide-react'
 import { DURATION_PRESETS } from '../constants'
 import type { FlightConfig } from '../types'
 
@@ -9,47 +9,42 @@ interface Props {
   onBoard: (durationMinutes: number, todos: string[]) => void
 }
 
-// ─── Barcode (fixed height) ────────────────────────────────────────
-function Barcode() {
-  const bars = useMemo(() => {
-    const pattern = [2,1,3,1,2,1,1,3,2,1,1,2,3,1,2,1,1,2,1,3,1,2,1,1,3,2,1,2,1,1,2,3,1,1,2,1,3,1,2,2,1,1,3,1,2,1,2,1,3,1,1,2]
-    return pattern.map((w, i) => ({ width: w, opacity: i % 3 === 0 ? 0.5 : i % 2 === 0 ? 0.3 : 0.15 }))
-  }, [])
-  return (
-    <div className="flex items-stretch gap-[0.5px] h-6">
-      {bars.map((bar, i) => (
-        <div
-          key={i}
-          className="h-full rounded-[0.5px]"
-          style={{
-            width: `${bar.width}px`,
-            backgroundColor: `rgba(148, 197, 253, ${bar.opacity})`,
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-// ─── Flight path (compact) ─────────────────────────────────────────
-function FlightPath({ km }: { km: number }) {
-  return (
-    <div className="flex items-center gap-1.5 mt-2">
-      <div className="w-1 h-1 rounded-full bg-sky-400/40 shrink-0" />
-      <div className="flex-1 h-px" style={{
-        backgroundImage: 'repeating-linear-gradient(to right, rgba(96,165,250,0.18) 0px, rgba(96,165,250,0.18) 3px, transparent 3px, transparent 8px)',
-      }} />
-      <Plane className="w-2.5 h-2.5 text-sky-400/25 shrink-0" />
-      <div className="flex-1 h-px" style={{
-        backgroundImage: 'repeating-linear-gradient(to right, rgba(96,165,250,0.12) 0px, rgba(96,165,250,0.12) 3px, transparent 3px, transparent 8px)',
-      }} />
-      <div className="w-1 h-1 rounded-full border border-sky-400/25 shrink-0" />
-      <span className="text-[6px] font-mono text-white/10 ml-0.5 shrink-0">{km.toLocaleString()}km</span>
-    </div>
-  )
-}
-
 const ease = [0.22, 1, 0.36, 1]
+
+// Destination glow themes: [primary, secondary, accent]
+const GLOW_THEMES: Record<string, [string, string, string]> = {
+  KR: ['#38bdf8', '#6366f1', '#22d3ee'],   // cool blue (default)
+  JP: ['#f472b6', '#a855f7', '#fda4af'],   // cherry blossom
+  TH: ['#fbbf24', '#f59e0b', '#fb923c'],   // golden temple
+  SG: ['#f87171', '#fb923c', '#fbbf24'],   // modern red
+  HK: ['#f43f5e', '#a855f7', '#ec4899'],   // neon city
+  MY: ['#2dd4bf', '#3b82f6', '#34d399'],   // tropical teal
+  PH: ['#38bdf8', '#2dd4bf', '#22d3ee'],   // ocean blue
+  VN: ['#f59e0b', '#ef4444', '#fbbf24'],   // warm gold
+  ID: ['#34d399', '#2dd4bf', '#22d3ee'],   // tropical emerald
+  TW: ['#fb923c', '#f472b6', '#fbbf24'],   // warm modern
+  CN: ['#ef4444', '#fbbf24', '#f97316'],   // imperial red
+  IN: ['#f97316', '#fbbf24', '#ef4444'],   // saffron
+  AE: ['#fbbf24', '#f97316', '#d97706'],   // desert gold
+  QA: ['#be123c', '#fbbf24', '#f43f5e'],   // maroon
+  TR: ['#ef4444', '#f97316', '#fbbf24'],   // byzantine
+  FR: ['#a78bfa', '#fbbf24', '#c084fc'],   // lavender
+  GB: ['#3b82f6', '#6366f1', '#818cf8'],   // royal blue
+  DE: ['#60a5fa', '#38bdf8', '#818cf8'],   // precision blue
+  IT: ['#fb923c', '#f472b6', '#fbbf24'],   // terracotta
+  ES: ['#f97316', '#ef4444', '#fbbf24'],   // fiery
+  NL: ['#f97316', '#fb923c', '#fbbf24'],   // dutch orange
+  US: ['#3b82f6', '#6366f1', '#f97316'],   // stars & stripes
+  CA: ['#ef4444', '#38bdf8', '#f87171'],   // northern cool
+  BR: ['#22c55e', '#fbbf24', '#34d399'],   // tropical
+  AU: ['#f59e0b', '#ef4444', '#fb923c'],   // outback
+  NZ: ['#22d3ee', '#34d399', '#38bdf8'],   // natural
+}
+const DEFAULT_GLOW: [string, string, string] = ['#38bdf8', '#6366f1', '#22d3ee']
+
+function hexToRgb(hex: string) {
+  return `${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)}`
+}
 
 export function BoardingPass({ config, onBoard }: Props) {
   const [selectedMinutes, setSelectedMinutes] = useState(50)
@@ -58,261 +53,278 @@ export function BoardingPass({ config, onBoard }: Props) {
   const [tearing, setTearing] = useState(false)
   const [todoItems, setTodoItems] = useState<string[]>([])
   const [todoInput, setTodoInput] = useState('')
-  const { from, to, aircraft, seat, distanceKm, flightNumber } = config
+  const { from, to } = config
 
-  const stubCtrl = useAnimation()
-  const mainCtrl = useAnimation()
-  const tearLineCtrl = useAnimation()
+  const heroCtrl = useAnimation()
+  const contentCtrl = useAnimation()
 
-  const boardingTime = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-  const date = new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short' }).toUpperCase()
+  const [primary, secondary, accent] = useMemo(
+    () => GLOW_THEMES[to.country] ?? DEFAULT_GLOW,
+    [to.country],
+  )
 
   const activeDuration = isCustom ? parseInt(customMinutes) || 0 : selectedMinutes
-  const gate = useMemo(() => `B${Math.floor(Math.random() * 30 + 1)}`, [])
-  const group = useMemo(() => Math.floor(Math.random() * 5 + 1), [])
 
   const handleBoard = useCallback(async () => {
     const minutes = isCustom ? parseInt(customMinutes) || 50 : selectedMinutes
     if (minutes <= 0 || minutes > 480 || tearing) return
     setTearing(true)
 
-    // Tension pull
-    await stubCtrl.start({
-      x: -3,
-      transition: { duration: 0.15, ease: 'easeOut' },
-    })
-
-    // Tear apart
     await Promise.all([
-      tearLineCtrl.start({
+      heroCtrl.start({
+        y: -80,
         opacity: 0,
-        transition: { duration: 0.2 },
+        transition: { duration: 0.8, ease },
       }),
-      stubCtrl.start({
-        x: 320,
-        rotate: 15,
+      contentCtrl.start({
+        y: 40,
         opacity: 0,
-        transition: { duration: 1.0, ease },
-      }),
-      mainCtrl.start({
-        x: -60,
-        opacity: 0,
-        transition: { duration: 0.85, ease, delay: 0.12 },
+        transition: { duration: 0.7, ease, delay: 0.1 },
       }),
     ])
 
     onBoard(minutes, todoItems)
-  }, [isCustom, customMinutes, selectedMinutes, tearing, stubCtrl, mainCtrl, tearLineCtrl, onBoard, todoItems])
+  }, [isCustom, customMinutes, selectedMinutes, tearing, heroCtrl, contentCtrl, onBoard, todoItems])
 
   return (
     <div className="h-full flex flex-col items-center justify-center relative overflow-hidden">
       <div className="absolute inset-0 bg-night-950" />
-      <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-sky-500/[0.025] rounded-full blur-[120px]" />
-      <div className="absolute top-[45%] left-[30%] w-[300px] h-[300px] bg-indigo-500/[0.015] rounded-full blur-[100px]" />
+      <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full blur-[120px]"
+        style={{ backgroundColor: `rgba(${hexToRgb(primary)},0.02)` }} />
 
-      <div className="relative z-10 w-full max-w-[540px] px-4">
+      {/* Two-column layout */}
+      <div className="relative z-10 w-full max-w-[820px] h-full flex items-center px-6 py-6 gap-8">
 
-        {/* ── Boarding Pass Card (wide) ── */}
+        {/* Left column: Hero */}
         <motion.div
-          initial={{ opacity: 0, x: 320 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease }}
-          className="flex relative"
-          style={{ filter: 'drop-shadow(0 8px 32px rgba(6,10,20,0.6))' }}
+          animate={heroCtrl}
+          initial={{ opacity: 0, y: 60 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.0, ease }}
+          className="flex-1 flex flex-col items-center justify-center min-w-0 pointer-events-none"
         >
-          {/* === Left: Main Section === */}
-          <motion.div
-            animate={mainCtrl}
-            className="flex-1 min-w-0 rounded-l-[18px] overflow-hidden border border-r-0 border-white/[0.07]"
-            style={{ background: 'linear-gradient(145deg, rgba(15,22,35,1) 0%, rgba(12,17,28,1) 100%)' }}
-          >
-            {/* Header */}
-            <div className="px-4 pt-3.5 pb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-sky-400/[0.08] flex items-center justify-center">
-                  <Plane className="w-2.5 h-2.5 text-sky-400/70" />
-                </div>
-                <span className="text-[9px] font-mono text-sky-400/55 tracking-[0.25em]">{flightNumber}</span>
-              </div>
-              <span className="text-[6px] font-mono text-white/10 tracking-[0.25em]">BOARDING PASS</span>
-            </div>
-            <div className="mx-4 h-px bg-gradient-to-r from-sky-400/10 via-white/[0.03] to-transparent" />
+          <div className="relative w-full h-[280px] flex items-center justify-center">
+            <motion.div
+              animate={{ scale: [1, 1.2, 1], opacity: [0.035, 0.07, 0.035] }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40%] w-[420px] h-[420px] rounded-full blur-[130px]"
+              style={{ backgroundColor: primary }}
+            />
+            <motion.div
+              animate={{ scale: [1, 1.25, 1], x: [-15, 20, -15], opacity: [0.025, 0.055, 0.025] }}
+              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+              className="absolute top-[20%] left-[20%] w-[220px] h-[220px] rounded-full blur-[100px]"
+              style={{ backgroundColor: secondary }}
+            />
+            <motion.div
+              animate={{ scale: [1, 1.15, 1], x: [12, -15, 12], opacity: [0.02, 0.045, 0.02] }}
+              transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+              className="absolute top-[30%] right-[15%] w-[200px] h-[200px] rounded-full blur-[110px]"
+              style={{ backgroundColor: accent }}
+            />
+            <motion.div
+              animate={{ scale: [0.85, 1.1, 0.85], opacity: [0, 0.05, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40%] w-[240px] h-[240px] rounded-full"
+              style={{ borderWidth: 1, borderColor: `rgba(${hexToRgb(primary)},0.5)` }}
+            />
+            <motion.div
+              animate={{ scale: [0.9, 1.2, 0.9], opacity: [0, 0.03, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40%] w-[320px] h-[320px] rounded-full"
+              style={{ borderWidth: 1, borderColor: `rgba(${hexToRgb(primary)},0.3)` }}
+            />
 
-            {/* Route + Flight path */}
-            <div className="px-4 pt-3 pb-1">
-              <div className="flex items-baseline justify-between">
+            <motion.div
+              animate={{ y: [0, -10, 0], rotate: [0, 0.5, 0, -0.5, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+              className="relative z-10"
+              style={{
+                marginTop: '45%',
+                maskImage: 'linear-gradient(to bottom, black 0%, black 25%, transparent 55%), linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 25%, transparent 55%), linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%)',
+                maskComposite: 'intersect',
+                WebkitMaskComposite: 'source-in',
+              }}
+            >
+              <img
+                src="/airplane-top.webp"
+                alt="Airplane"
+                className="w-[420px] h-auto object-contain"
+                style={{ filter: `brightness(0.7) contrast(1.2) drop-shadow(0 0 60px rgba(${hexToRgb(primary)},0.12))` }}
+              />
+            </motion.div>
+          </div>
+
+          <div className="flex flex-col items-center -mt-4 relative z-20">
+            <motion.p
+              initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ duration: 1.0, delay: 0.3, ease }}
+              className="text-[13px] font-bold text-amber-400 tracking-[0.3em] uppercase"
+            >
+              Boarding
+            </motion.p>
+            <motion.p
+              initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ duration: 1.0, delay: 0.5, ease }}
+              className="text-[32px] font-bold text-white tracking-wide leading-none mt-1"
+            >
+              {from.code}
+              <span className="text-amber-400 mx-3 text-[20px]">{'\u2192'}</span>
+              {to.code}
+            </motion.p>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.9, ease }}
+              className="text-[11px] text-white/25 mt-2"
+            >
+              {from.cityKo} — {to.cityKo}
+            </motion.p>
+          </div>
+        </motion.div>
+
+        {/* Right column: Boarding Pass card */}
+        <motion.div
+          animate={contentCtrl}
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.4, ease }}
+          className="relative z-20 w-[300px] shrink-0 flex flex-col justify-center"
+        >
+          <div className="rounded-[20px] overflow-hidden flex flex-col shadow-2xl shadow-black/40"
+            style={{ background: 'linear-gradient(170deg, #1a1a20 0%, #111114 50%, #0d0d10 100%)' }}
+          >
+            {/* Route header */}
+            <div className="px-5 pt-6 pb-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[28px] font-bold tracking-[0.08em] text-white/90 font-mono leading-none">{from.code}</p>
-                  <p className="text-[9px] text-white/20 mt-1">{from.cityKo}</p>
+                  <p className="text-[28px] font-bold text-white font-mono leading-none">{from.code}</p>
+                  <p className="text-[10px] text-white/20 mt-1">{from.cityKo}</p>
+                </div>
+                <div className="flex flex-col items-center px-3">
+                  <PlaneTakeoff className="w-3.5 h-3.5 text-amber-400/50 mb-1.5" />
+                  <div className="flex items-center gap-1">
+                    <div className="w-5 h-px bg-surface/[0.06]" />
+                    <div className="w-1 h-1 rounded-full bg-amber-400/30" />
+                    <div className="w-5 h-px bg-surface/[0.06]" />
+                  </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[28px] font-bold tracking-[0.08em] text-white/90 font-mono leading-none">{to.code}</p>
-                  <p className="text-[9px] text-white/20 mt-1">{to.cityKo}</p>
+                  <p className="text-[28px] font-bold text-white font-mono leading-none">{to.code}</p>
+                  <p className="text-[10px] text-white/20 mt-1">{to.cityKo}</p>
                 </div>
               </div>
-              <FlightPath km={distanceKm} />
             </div>
 
-            {/* Info row + Barcode — side by side */}
-            <div className="px-4 pt-2.5 pb-3.5 flex items-end gap-4">
-              {/* Info columns */}
-              <div className="flex gap-4 flex-1 min-w-0">
-                <div>
-                  <p className="text-[6px] font-mono text-white/15 tracking-[0.15em]">DATE</p>
-                  <p className="text-[10px] font-mono text-white/45 mt-0.5 font-medium">{date}</p>
-                </div>
-                <div>
-                  <p className="text-[6px] font-mono text-white/15 tracking-[0.15em]">TIME</p>
-                  <p className="text-[10px] font-mono text-white/45 mt-0.5 font-medium">{boardingTime}</p>
-                </div>
-                <div>
-                  <p className="text-[6px] font-mono text-white/15 tracking-[0.15em]">AIRCRAFT</p>
-                  <p className="text-[10px] font-mono text-white/45 mt-0.5 font-medium truncate">{aircraft.name.split(' ').slice(0,2).join(' ')}</p>
-                </div>
-              </div>
-              {/* Barcode */}
-              <div className="flex flex-col items-center shrink-0">
-                <Barcode />
-                <span className="text-[6px] font-mono text-white/6 tracking-[0.15em] mt-1">FLT{flightNumber.replace('-','')}</span>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* === Tear line === */}
-          <motion.div animate={tearLineCtrl} className="relative w-0 z-10 shrink-0">
-            <div className="absolute -top-[1px] left-1/2 -translate-x-1/2 w-5 h-2.5 rounded-b-full bg-night-950 z-10" />
-            <div className="absolute -bottom-[1px] left-1/2 -translate-x-1/2 w-5 h-2.5 rounded-t-full bg-night-950 z-10" />
-            <div
-              className="absolute top-3.5 bottom-3.5 left-1/2 -translate-x-1/2 w-px"
-              style={{
-                backgroundImage: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.06) 0px, rgba(255,255,255,0.06) 4px, transparent 4px, transparent 10px)',
-              }}
-            />
-          </motion.div>
-
-          {/* === Right: Stub === */}
-          <motion.div
-            animate={stubCtrl}
-            className="w-[110px] shrink-0 rounded-r-[18px] border border-l-0 border-white/[0.07] flex flex-col items-center justify-between py-3.5 px-2.5"
-            style={{ transformOrigin: '0% 30%', background: 'linear-gradient(160deg, rgba(14,20,32,1) 0%, rgba(11,15,25,1) 100%)' }}
-          >
-            {/* Seat */}
-            <div className="text-center">
-              <p className="text-[6px] font-mono text-white/12 tracking-[0.25em] mb-1.5">SEAT</p>
-              <div className="w-12 h-12 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
-                <p className="text-[18px] font-mono font-bold text-white/70 tracking-wider">{seat}</p>
-              </div>
+            {/* Tear perforation */}
+            <div className="relative flex items-center">
+              <div className="w-4 h-7 -ml-2 rounded-r-full bg-night-950 border-r border-y border-surface/[0.04] shrink-0" />
+              <div className="flex-1 border-t border-dashed border-surface/[0.06]" />
+              <div className="w-4 h-7 -mr-2 rounded-l-full bg-night-950 border-l border-y border-surface/[0.04] shrink-0" />
             </div>
 
-            {/* Gate + Group */}
-            <div className="text-center space-y-2.5 w-full">
-              <div>
-                <p className="text-[6px] font-mono text-white/12 tracking-[0.15em]">GATE</p>
-                <p className="text-[12px] font-mono text-white/40 mt-0.5 font-semibold">{gate}</p>
+            {/* Duration selector */}
+            <div className="px-5 pt-4 pb-2">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[7px] font-mono text-white/20 tracking-[0.2em]">FOCUS TIME</p>
+                <span className="text-[18px] font-mono font-bold text-amber-400 leading-none">
+                  {activeDuration > 0 ? `${activeDuration}'` : '--'}
+                </span>
               </div>
-              <div>
-                <p className="text-[6px] font-mono text-white/12 tracking-[0.15em]">GROUP</p>
-                <p className="text-[12px] font-mono text-white/40 mt-0.5 font-semibold">{group}</p>
-              </div>
-            </div>
-
-            <p className="text-[6px] font-mono text-sky-400/20 tracking-[0.15em]">{flightNumber}</p>
-          </motion.div>
-        </motion.div>
-
-        {/* ── Duration selector ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: tearing ? 0 : 1, y: tearing ? -15 : 0 }}
-          transition={{ duration: tearing ? 0.4 : 0.7, delay: tearing ? 0 : 0.5, ease }}
-          className="mt-10"
-        >
-          <p className="text-[7px] font-mono text-white/15 tracking-[0.25em] mb-3 text-center">FOCUS DURATION</p>
-          <div className="flex gap-2 mb-3">
-            {DURATION_PRESETS.map(preset => (
-              <button
-                key={preset.minutes}
-                onClick={() => { setSelectedMinutes(preset.minutes); setIsCustom(false) }}
-                className={`flex-1 py-2.5 rounded-xl text-[12px] font-mono transition-all duration-300 ${
-                  !isCustom && selectedMinutes === preset.minutes
-                    ? 'bg-white/[0.08] text-white/70 border border-white/[0.08]'
-                    : 'text-white/20 hover:text-white/40 hover:bg-white/[0.03] border border-transparent'
-                }`}
-              >{preset.label}</button>
-            ))}
-          </div>
-          <div
-            className={`flex items-center rounded-xl px-4 py-2.5 transition-all duration-300 cursor-text border ${
-              isCustom ? 'bg-white/[0.05] border-white/[0.08]' : 'bg-white/[0.02] border-white/[0.03]'
-            }`}
-            onClick={() => setIsCustom(true)}
-          >
-            <input type="number" placeholder="직접 입력 (분)" value={customMinutes}
-              onChange={e => { setCustomMinutes(e.target.value); setIsCustom(true) }}
-              onFocus={() => setIsCustom(true)}
-              className="flex-1 bg-transparent text-[12px] font-mono text-white/50 placeholder:text-white/12 outline-none"
-              min={1} max={480} />
-            <span className="text-[10px] text-white/12 font-mono ml-2">min</span>
-          </div>
-
-          {/* Todo list */}
-          <div className="mt-5">
-            <p className="text-[9px] font-mono text-white/20 tracking-[0.25em] mb-3 text-center">TO-DO</p>
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                placeholder="이 시간에 할 일"
-                value={todoInput}
-                onChange={e => setTodoInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && todoInput.trim()) {
-                    setTodoItems(prev => [...prev, todoInput.trim()])
-                    setTodoInput('')
-                  }
-                }}
-                className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-[13px] font-mono text-white/65 placeholder:text-white/20 outline-none"
-              />
-              <button
-                onClick={() => { if (todoInput.trim()) { setTodoItems(prev => [...prev, todoInput.trim()]); setTodoInput('') } }}
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.12] transition-colors"
-              >
-                <Plus className="w-4 h-4 text-white/40" />
-              </button>
-            </div>
-            {todoItems.length > 0 && (
-              <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
-                {todoItems.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.04] group">
-                    <span className="text-[13px] font-mono text-white/50">{item}</span>
-                    <button onClick={() => setTodoItems(prev => prev.filter((_, j) => j !== i))}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <X className="w-3.5 h-3.5 text-white/25 hover:text-white/50" />
-                    </button>
-                  </div>
+              <div className="flex gap-1 mb-2">
+                {DURATION_PRESETS.map(preset => (
+                  <button
+                    key={preset.minutes}
+                    onClick={() => { setSelectedMinutes(preset.minutes); setIsCustom(false) }}
+                    className={`flex-1 py-1.5 text-[11px] font-mono font-semibold transition-all duration-150 border-b-2 ${
+                      !isCustom && selectedMinutes === preset.minutes
+                        ? 'border-amber-400 text-amber-400'
+                        : 'border-transparent text-white/20 hover:text-white/40'
+                    }`}
+                  >{preset.minutes}min</button>
                 ))}
               </div>
-            )}
+              <div
+                className={`flex items-center rounded-md px-3 py-1.5 cursor-text transition-all border ${
+                  isCustom ? 'border-amber-400/30 bg-amber-400/5' : 'border-surface/[0.04] bg-transparent'
+                }`}
+                onClick={() => setIsCustom(true)}
+              >
+                <input type="number" placeholder="Custom" value={customMinutes}
+                  onChange={e => { setCustomMinutes(e.target.value); setIsCustom(true) }}
+                  onFocus={() => setIsCustom(true)}
+                  className="flex-1 bg-transparent text-[11px] font-mono text-white/50 placeholder:text-white/12 outline-none"
+                  min={1} max={480} />
+                <span className="text-[9px] text-white/15 font-mono">min</span>
+              </div>
+            </div>
+
+            {/* Todo list */}
+            <div className="px-5 pt-2 pb-1 flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[7px] font-mono text-white/20 tracking-[0.2em]">TO-DO</p>
+                {todoItems.length > 0 && (
+                  <span className="text-[9px] font-mono text-white/15">{todoItems.length}</span>
+                )}
+              </div>
+              <div className="flex gap-1 mb-1">
+                <input
+                  type="text"
+                  placeholder="+ Add task"
+                  value={todoInput}
+                  onChange={e => setTodoInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && todoInput.trim()) {
+                      setTodoItems(prev => [...prev, todoInput.trim()])
+                      setTodoInput('')
+                    }
+                  }}
+                  className="flex-1 border-b border-surface/[0.06] bg-transparent px-1 py-1.5 text-[11px] font-mono text-white/50 placeholder:text-white/12 outline-none focus:border-amber-400/30 transition-colors"
+                />
+                <button
+                  onClick={() => { if (todoInput.trim()) { setTodoItems(prev => [...prev, todoInput.trim()]); setTodoInput('') } }}
+                  className="px-2 py-1 text-[10px] font-mono text-amber-400/60 hover:text-amber-400 transition-colors"
+                >
+                  ADD
+                </button>
+              </div>
+              {todoItems.length > 0 && (
+                <div className="space-y-0 max-h-[120px] overflow-y-auto mt-1">
+                  {todoItems.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 py-1.5 border-b border-surface/[0.03] group">
+                      <div className="w-3.5 h-3.5 rounded border border-surface/[0.08] shrink-0 flex items-center justify-center hover:border-amber-400/30 cursor-pointer"
+                        onClick={() => setTodoItems(prev => prev.filter((_, j) => j !== i))}>
+                        <X className="w-2 h-2 text-transparent group-hover:text-white/30" />
+                      </div>
+                      <span className="text-[11px] font-mono text-white/40 flex-1">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Board button */}
+            <div className="px-5 pt-3 pb-5">
+              <motion.button
+                whileHover={{ scale: 1.015 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleBoard}
+                disabled={activeDuration <= 0 || tearing}
+                className="w-full py-3.5 rounded-xl bg-amber-400 text-black font-bold text-[14px] tracking-[0.04em] hover:bg-amber-300 transition-all disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-amber-400/10"
+              >
+                <PlaneTakeoff className="w-4 h-4" />
+                탑승하기
+              </motion.button>
+            </div>
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={handleBoard}
-            disabled={activeDuration <= 0 || tearing}
-            className="w-full mt-4 py-3.5 rounded-2xl bg-gradient-to-r from-white/[0.07] to-white/[0.04] border border-white/[0.08] text-white/65 font-medium text-[14px] tracking-[0.08em] hover:from-white/[0.1] hover:to-white/[0.06] hover:text-white/85 transition-all duration-400 disabled:opacity-20 disabled:cursor-not-allowed"
-          >
-            탑승하기
-          </motion.button>
+          <p className="text-center mt-2.5 text-[7px] text-white/5 tracking-[0.4em] uppercase font-mono">
+            Flightime
+          </p>
         </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: tearing ? 0 : 1 }}
-          transition={{ delay: tearing ? 0 : 1.0, duration: 0.6 }}
-          className="text-center mt-6 text-[8px] text-white/5 tracking-[0.5em] uppercase font-mono"
-        >
-          Flightime
-        </motion.p>
       </div>
     </div>
   )
