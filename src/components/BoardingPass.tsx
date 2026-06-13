@@ -194,8 +194,7 @@ export function BoardingPass({ config, onBoard }: Props) {
           transition={{ duration: 0.7, delay: 0.4, ease }}
           className="relative z-20 w-[300px] shrink-0 flex flex-col justify-center"
         >
-          <div className="rounded-[20px] overflow-hidden flex flex-col shadow-2xl shadow-black/40"
-            style={{ background: 'linear-gradient(170deg, #1a1a20 0%, #111114 50%, #0d0d10 100%)' }}
+          <div className="rounded-[20px] overflow-hidden flex flex-col shadow-2xl shadow-black/40 bg-night-900"
           >
             {/* Route header */}
             <div className="px-5 pt-6 pb-4">
